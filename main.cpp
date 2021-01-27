@@ -107,6 +107,7 @@ int main(int argc, char **argv)
 	cosmology cosmo;
 	icsettings ic;
 	double T00hom;
+	global_defects gdefects;
 
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -182,7 +183,8 @@ int main(int argc, char **argv)
 	numparam = loadParameterFile(settingsfile, params);
 
 	usedparams = parseMetadata(params, numparam, sim, cosmo, ic);
-
+    
+    COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
 	/***
 
 	Here the parameters are read...
@@ -191,8 +193,10 @@ int main(int argc, char **argv)
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 
 	***/
+	
+	usedparams = parseDefectMetadata(params, numparam, gdefects);
 
-	COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl
+	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl;
 
 
 

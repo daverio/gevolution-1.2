@@ -140,6 +140,9 @@
 #define COLORTEXT_RESET     ""
 #endif
 
+// Defining the default dissipation settings for the global defects
+#define DISSIPATION_FLAG             1
+
 // header structure for GADGET-2 files [V. Springel, N. Yoshida, and S.D. White, New Astron. 6 (2001) 79
 // and V. Springel, Mon. Not. R. Astron. Soc. 364 (2005) 1105]
 
@@ -285,4 +288,13 @@ struct cosmology
 	int num_ncdm;
 };
 
+struct global_defects
+{
+    int nComponents;
+    double eta2;
+    double lambda;
+    double friction_coeff;
+    int dissipation;
+    double diss_end;
+};
 #endif

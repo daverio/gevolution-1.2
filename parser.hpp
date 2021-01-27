@@ -1796,8 +1796,86 @@ int parseMetadata(parameter * & params, const int numparam, metadata & sim, cosm
 	{
 		if (params[i].used) usedparams++;
 	}
-	
 	return usedparams;
+}
+	//parse global_defects
+int parseDefectMetadata(parameter * & params, const int numparam, global_defects & gdefects)
+{
+	char par_string[PARAM_MAX_LENGTH];
+	int used_defect_params = 0;
+	gdefects.dissipation = 0;
+	
+	parseParameter(params, numparam, "nComponents", gdefects.nComponents);
+	if (gdefects.nComponents < 1 || !isfinite(gdefects.nComponents))
+	{
+		COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": number of components for the scalar field in global defects not set properly!" << endl;
+#ifdef LATFIELD2_HPP
+		parallel.abortForce();
+#endif
+	}
+	
+	parseParameter(params, numparam, "eta2", gdefects.eta2);
+	if (gdefects.eta2 <= 0 || !isfinite(gdefects.eta2))
+	{
+		COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the eta square for the scalar field in global defects not set properly!" << endl;
+#ifdef LATFIELD2_HPP
+		parallel.abortForce();
+#endif
+	}
+	
+	parseParameter(params, numparam, "lambda", gdefects.lambda);
+	if (gdefects.lambda <= 0 || !isfinite(gdefects.lambda))
+	{
+		COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the lambda for the scalar field in global defects not set properly!" << endl;
+#ifdef LATFIELD2_HPP
+		parallel.abortForce();
+#endif
+	}
+	
+	parseParameter(params, numparam, "friction_coeff", gdefects.friction_coeff);
+	if (gdefects.friction_coeff < 0 || !isfinite(gdefects.friction_coeff))
+	{
+		COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the friction coefficient for the scalar field in global defects not set properly!" << endl;
+#ifdef LATFIELD2_HPP
+		parallel.abortForce();
+#endif
+	}
+	
+	if (parseParameter(params, numparam, "dissipation", par_string))
+	{
+		if (par_string[0] == 'Y' || par_string[0] == 'y')
+			gdefects.dissipation |= DISSIPATION_FLAG ;
+		else if (par_string[0] != 'N' && par_string[0] != 'n')
+			COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET << ": setting chosen for dissipation needed option not recognized, using default (no)" << endl;
+	}
+	
+	parseParameter(params, numparam, "dissipation_end", gdefects.diss_end);
+	if (gdefects.dissipation)
+	{
+	    if (gdefects.diss_end <= 0 || !isfinite(gdefects.diss_end))
+	    {
+		    COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the end of dissipation time for the global defects not set properly!" << endl;
+#ifdef LATFIELD2_HPP
+		    parallel.abortForce();
+#endif
+	    }
+	    else
+	    {
+	        COUT << "The dissipation option is set as true for global defect and the end of dissipation is at = "<< gdefects.diss_end<<" and the friction coefficient is = "<< gdefects.friction_coeff<<endl;
+	    }
+	}
+	else
+	{
+	    COUT<< " The dissipation option is set as false."<<endl<<endl;
+	}
+	
+	COUT<< "The global defect parameters used are:"<<" "<<"eta square = "<< gdefects.eta2<< ", lambda = "<<gdefects.lambda<<", number of components = "<<gdefects.nComponents<<endl<<endl;
+	 
+	for (int i = 0; i < numparam; i++)
+	{
+		if (params[i].used) used_defect_params++;
+	}
+	return used_defect_params;
 }
 
 #endif
