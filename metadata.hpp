@@ -290,6 +290,7 @@ struct cosmology
 
 struct global_defects
 {
+    int defect_flag;
     int nComponents;
     double eta2;
     double lambda;
