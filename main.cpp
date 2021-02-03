@@ -63,6 +63,8 @@
 #include "velocity.hpp"
 #endif
 
+#include "global_defect.hpp"
+
 using namespace std;
 using namespace LATfield2;
 
@@ -108,7 +110,7 @@ int main(int argc, char **argv)
 	icsettings ic;
 	double T00hom;
 	global_defects gdefects;
-
+    int step =0;
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
 #endif
@@ -317,6 +319,7 @@ maybe better to put it in "generateIC_basic_strings"
 
 ***/
 
+    Global_defect evolvingglobaldefects(lat, latFT, dx, dtau, gdefects, sim);
 
 
 	if (ic.generator == ICGEN_BASIC)
@@ -741,6 +744,7 @@ Compute phi
 		}
 #endif // EXACT_OUTPUT_REDSHIFTS
 
+
 #ifdef BENCHMARK
 		spectra_output_time += MPI_Wtime() - ref_time;
 #endif
@@ -849,8 +853,28 @@ Compute phi
 				-- update temporary scale factor
 		***/
 
-
-
+        evolvingglobaldefects.evolve(dtau, dx, a, Hconf(a, fourpiG, cosmo), step, gdefects, sim);
+        COUT<< "Evolving defects after dt "<<dtau<<" and at scale factor "<<a<<" at step:"<<step<<endl;
+ 
+//        if(step ==0)
+//            {
+//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
+//                evolvingglobaldefects.averagerhodefect(a, sim, step);
+//            }
+//            else
+//            {
+//                evolvingglobaldefects.field_leapfrog_update_phi(dtau, gdefects);
+//                evolvingglobaldefects.field_leapfrog_update_pi(dtau, dx, a, Hconf(a, fourpiG, cosmo), gdefects,step);
+//                evolvingglobaldefects.compute_rho_P_(dx, a, gdefects);
+//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
+//                evolvingglobaldefects.averagerhodefect(a, sim, step);
+//                
+//        //        if(output_now(step))
+//        //        {
+//        //          output(a_,step);
+//        //        }
+//            }
+        step++;
 
 		// cdm and baryon particle update
 		f_params[0] = a;
@@ -961,6 +985,10 @@ Compute phi
 #ifdef BENCHMARK
 		cycle_time += MPI_Wtime()-cycle_start_time;
 #endif
+
+      /////// adding defects evolution
+      
+
 }// end of the main loop...
 
 	COUT << COLORTEXT_GREEN << " simulation complete." << COLORTEXT_RESET << endl;
