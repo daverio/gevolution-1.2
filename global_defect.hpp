@@ -40,7 +40,6 @@ private:
     defects_metadata * defects_sim_;
 
 public:
-
   void initialize(Lattice * lat, Lattice * klat, double dx, metadata * sim, defects_metadata * defects_sim);
   void generate_init_cond();
   void update_phi(double dt);
@@ -163,6 +162,4 @@ void GlobalDefect::update_pi(double dt,
     }
   }
 }
-
-
 #endif

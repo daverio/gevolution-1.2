@@ -108,8 +108,8 @@ int main(int argc, char **argv)
 	metadata sim;
 	cosmology cosmo;
 	icsettings ic;
+	defects_metadata defects_sim;
 	double T00hom;
-	defects_metadata  defects_sim;
 
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	numparam = loadParameterFile(settingsfile, params);
 
 	usedparams = parseMetadata(params, numparam, sim, cosmo, ic);
-    
+
     COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
 	/***
 
@@ -195,8 +195,9 @@ int main(int argc, char **argv)
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 
 	***/
-	
+
 	usedparams = parseDefectMetadata(params, numparam, defects_sim);
+
 
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
@@ -311,13 +312,14 @@ int main(int argc, char **argv)
 
 	dtau_old = 0.;
 
-/***
+    /***
 
-here put the initialization of the strings.... need to be thought a bit....
+    here put the initialization of the strings.... need to be thought a bit....
 
-maybe better to put it in "generateIC_basic_strings"
+    maybe better to put it in "generateIC_basic_strings"
 
-***/
+    ***/
+
 
     /***
     Add the defect class here and initialise
@@ -325,7 +327,6 @@ maybe better to put it in "generateIC_basic_strings"
     
     GlobalDefect defects;
     defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
-    
 
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
@@ -972,8 +973,7 @@ Compute phi
 		cycle_time += MPI_Wtime()-cycle_start_time;
 #endif
 
-      /////// adding defects evolution
-      
+
 
 }// end of the main loop...
 
