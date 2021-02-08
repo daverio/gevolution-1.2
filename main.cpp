@@ -109,8 +109,8 @@ int main(int argc, char **argv)
 	cosmology cosmo;
 	icsettings ic;
 	double T00hom;
-	global_defects gdefects;
-    int step =0;
+	defects_metadata  defects_sim;
+
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
 #endif
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
 	***/
 	
-	usedparams = parseDefectMetadata(params, numparam, gdefects);
+	usedparams = parseDefectMetadata(params, numparam, defects_sim);
 
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
@@ -319,8 +319,13 @@ maybe better to put it in "generateIC_basic_strings"
 
 ***/
 
-    Global_defect evolvingglobaldefects(lat, latFT, dx, dtau, gdefects, sim);
-
+    /***
+    Add the defect class here and initialise
+    ***/
+    
+    GlobalDefect defects;
+    defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
+    
 
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
@@ -853,28 +858,9 @@ Compute phi
 				-- update temporary scale factor
 		***/
 
-        evolvingglobaldefects.evolve(dtau, dx, a, Hconf(a, fourpiG, cosmo), step, gdefects, sim);
-        COUT<< "Evolving defects after dt "<<dtau<<" and at scale factor "<<a<<" at step:"<<step<<endl;
- 
-//        if(step ==0)
-//            {
-//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
-//                evolvingglobaldefects.averagerhodefect(a, sim, step);
-//            }
-//            else
-//            {
-//                evolvingglobaldefects.field_leapfrog_update_phi(dtau, gdefects);
-//                evolvingglobaldefects.field_leapfrog_update_pi(dtau, dx, a, Hconf(a, fourpiG, cosmo), gdefects,step);
-//                evolvingglobaldefects.compute_rho_P_(dx, a, gdefects);
-//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
-//                evolvingglobaldefects.averagerhodefect(a, sim, step);
-//                
-//        //        if(output_now(step))
-//        //        {
-//        //          output(a_,step);
-//        //        }
-//            }
-        step++;
+        defects.update_phi(dtau);
+        defects.update_pi(dtau, a, Hconf(a, fourpiG, cosmo));
+
 
 		// cdm and baryon particle update
 		f_params[0] = a;
