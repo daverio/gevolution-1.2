@@ -31,6 +31,7 @@ class GlobalDefect
 private:
 
     double dx_;
+<<<<<<< HEAD
     double dt_;
     Lattice * lat_;
     Lattice * klat_;
@@ -127,12 +128,50 @@ void GlobalDefect::update_phi(double dt)
   for(x.first();x.test();x.next())
   {
     for(int c = 0; c < defects_sim_->nComponents;c++)
+=======
+    Lattice * lat_;
+    Lattice * klat_;
+    Field<double> phi_defect_;
+    Field<double> pi_defect_;
+
+    metadata * sim_;
+    defects_metadata * defects_sim_;
+
+public:
+
+  void initialize(Lattice * lat, Lattice * klat_, metadata * sim, defects_metadata * defects_sim);
+  void generate_init_cond();
+  void update_phi()
+  void update_pi(double dt, double a, double adot_overa);
+
+};
+
+void initialize(Lattice * lat, Lattice * klat_, double dx, metadata * sim, defects_metadata * defects_sim)
+{
+  dx_ = dx;
+  lat_ = lat;
+  /*
+  
+  */
+}
+void generate_init_cond()
+{
+
+}
+void update_phi()
+{
+  Site x(lat_); // why it does not compile!
+  for(x.first();x.test();x.next())
+  {
+    for(int c = 0; c < defects_sim_.nComponents;c++)
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
     {
       phi_defect_(x,c) += dt_ * pi_defect_(x,c);
     }
   }
   phi_defect_.updateHalo(); //update the value of phi in the halo
 }
+<<<<<<< HEAD
 
 void GlobalDefect::update_pi(double dt, double a, double adot_overa)
 {
@@ -142,20 +181,38 @@ void GlobalDefect::update_pi(double dt, double a, double adot_overa)
   
   Site x(pi_defect_.lattice()); // why it does not compile!
   
+=======
+void update_pi(double dt, double a, double adot_overa)
+{
+  Site x(lat_); // why it does not compile!
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
   double c1 = (1.0 - dt_ * (adot_overa_)) / (1.0 + dt_ * (adot_overa_));
   double c2 = dt_ / (1.0 + dt_ * adot_overa_);
   double a2 = a_*a_;
 
+<<<<<<< HEAD
 //   put what is in pi in pi_defect_prev
 //  .... we then switch the data between pi and pi_defect_prev:
   
   for(x.first();x.test();x.next())
   {
     for(int c = 0;c< defects_sim_->nComponents;c++)
+=======
+  // put what is in pi in pi_defect_prev
+  //.... we then switch the data between pi and pi_defect_prev:
+  double * temp = pi_defect_prev_.data_;
+  pi_defect_prev_.data_ = pi_defect_.data_;
+  pi_defect_.data_ = temp;
+
+  for(x.first();x.test();x.next())
+  {
+    for(int c = 0;c<gdefects.nComponents;c++)
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
     {
       double lapPhi = -6.0 * phi_defect_(x,c) ;
       for(int i = 0 ; i<3 ; i++)lapPhi += phi_defect_(x+i,c) + phi_defect_(x-i,c);
       lapPhi /= dx_*dx_;
+<<<<<<< HEAD
       pi_defect_(x,c) = c1 * pi_defect_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
     }
  }
@@ -176,5 +233,13 @@ double GlobalDefect::potentialprime(Site & x, int comp)
     for(int i =0;i< defects_sim_->nComponents;i++)phiNorm2 += phi_defect_(x,i)*phi_defect_(x,i);
     return 2.0 * defects_sim_->lambda * ( phiNorm2 - defects_sim->eta2) *  phi_defect_(x,comp);
 }
+=======
+      pi_defect_(x,c) = c1 * pi_defect_prev_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c,gdefects) );
+    }
+  }
+
+}
+
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
 
 #endif

@@ -194,7 +194,11 @@ int main(int argc, char **argv)
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 	***/
 
+<<<<<<< HEAD
 	usedparams = parseDefectMetadata(params, numparam, defects_sim);
+=======
+	usedparams = parseDefectMetadata(params, numparam, gdefects);
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
 
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
@@ -273,6 +277,9 @@ int main(int argc, char **argv)
 	double a_old;
 #endif
 
+	GlobalDefect defects;
+	defects.initialize(...);
+
 	update_cdm_fields[0] = &phi;
 	update_cdm_fields[1] = &chi;
 	update_cdm_fields[2] = &Bi;
@@ -317,6 +324,12 @@ here put the initialization of the strings.... need to be thought a bit....
 maybe better to put it in "generateIC_basic_strings"
 ***/
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> bca739aef65b87dde93fcb297705d7e7bcf62e37
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
 	else if (ic.generator == ICGEN_READ_FROM_DISK)
