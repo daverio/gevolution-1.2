@@ -1,4 +1,4 @@
-//////////////////////////
+/////////////////////////
 // Copyright (c) 2015-2019 Julian Adamek
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -63,6 +63,8 @@
 #include "velocity.hpp"
 #endif
 
+#include "global_defect.hpp"
+
 using namespace std;
 using namespace LATfield2;
 
@@ -106,8 +108,8 @@ int main(int argc, char **argv)
 	metadata sim;
 	cosmology cosmo;
 	icsettings ic;
+	defects_metadata defects_sim;
 	double T00hom;
-	global_defects gdefects;
 
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -183,18 +185,16 @@ int main(int argc, char **argv)
 	numparam = loadParameterFile(settingsfile, params);
 
 	usedparams = parseMetadata(params, numparam, sim, cosmo, ic);
-    
+
     COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
 	/***
-
 	Here the parameters are read...
 	somethibng like:
 	(parseDefectMetadata should be just as parseMetadata but take care only of the defect params(return the number of used params, just as parseMetadata))
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
-
 	***/
-	
-	usedparams = parseDefectMetadata(params, numparam, gdefects);
+
+	usedparams = parseDefectMetadata(params, numparam, defects_sim);
 
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
@@ -290,7 +290,10 @@ int main(int argc, char **argv)
 
 	dx = 1.0 / (double) sim.numpts;
 	numpts3d = (long) sim.numpts * (long) sim.numpts * (long) sim.numpts;
-
+	
+	GlobalDefect defects;
+	defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
+	
 	for (i = 0; i < 3; i++) // particles may never move farther than to the adjacent domain
 	{
 		if (lat.sizeLocal(i)-1 < sim.movelimit)
@@ -310,14 +313,9 @@ int main(int argc, char **argv)
 	dtau_old = 0.;
 
 /***
-
 here put the initialization of the strings.... need to be thought a bit....
-
 maybe better to put it in "generateIC_basic_strings"
-
 ***/
-
-
 
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
@@ -342,8 +340,9 @@ maybe better to put it in "generateIC_basic_strings"
 		COUT << " error: baryon_flag > 1 after IC generation, something went wrong in IC generator!" << endl;
 		parallel.abortForce();
 	}
-
+	
 	numspecies = 1 + sim.baryon_flag + cosmo.num_ncdm;
+	
 	parallel.max<double>(maxvel, numspecies);
 
 	if (sim.gr_flag > 0)
@@ -741,6 +740,7 @@ Compute phi
 		}
 #endif // EXACT_OUTPUT_REDSHIFTS
 
+
 #ifdef BENCHMARK
 		spectra_output_time += MPI_Wtime() - ref_time;
 #endif
@@ -835,12 +835,9 @@ Compute phi
 
 		/***
 		Here we update the strings...
-
 		we have to use a temporary scale factor (just as for the ncdm particles...)
-
 		--determine a number of substep for the string (numsteps_strings), which is dependent of the value of dtau....
 		(as it is done (745-750) for the ncdm parts.)
-
 		-- perform a loop over the those steps:
 			(all updates are done by dtau / 2 / numsteps_strings)
 				-- update "string momemtum fields" (pi??)
@@ -849,7 +846,27 @@ Compute phi
 				-- update temporary scale factor
 		***/
 
+        ///evolvingglobaldefects.evolve(dtau, dx, a, Hconf(a, fourpiG, cosmo), step, gdefects, sim);
+        //COUT<< "Evolving defects after dt "<<dtau<<" and at scale factor "<<a<<" at step:"<<step<<endl;
 
+//        if(step ==0)
+//            {
+//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
+//                evolvingglobaldefects.averagerhodefect(a, sim, step);
+//            }
+//            else
+//            {
+//                evolvingglobaldefects.field_leapfrog_update_phi(dtau, gdefects);
+//                evolvingglobaldefects.field_leapfrog_update_pi(dtau, dx, a, Hconf(a, fourpiG, cosmo), gdefects,step);
+//                evolvingglobaldefects.compute_rho_P_(dx, a, gdefects);
+//                evolvingglobaldefects.averagephidefect(a, sim, step, gdefects);
+//                evolvingglobaldefects.averagerhodefect(a, sim, step);
+//
+//        //        if(output_now(step))
+//        //        {
+//        //          output(a_,step);
+//        //        }
+//            }
 
 
 		// cdm and baryon particle update
@@ -961,6 +978,10 @@ Compute phi
 #ifdef BENCHMARK
 		cycle_time += MPI_Wtime()-cycle_start_time;
 #endif
+
+      /////// adding defects evolution
+
+
 }// end of the main loop...
 
 	COUT << COLORTEXT_GREEN << " simulation complete." << COLORTEXT_RESET << endl;
@@ -1014,3 +1035,4 @@ Compute phi
 
 	return 0;
 }
+
