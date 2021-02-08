@@ -1,4 +1,4 @@
-//////////////////////////
+/////////////////////////
 // Copyright (c) 2015-2019 Julian Adamek
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -188,15 +188,15 @@ int main(int argc, char **argv)
 
     COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
 	/***
-
 	Here the parameters are read...
 	somethibng like:
 	(parseDefectMetadata should be just as parseMetadata but take care only of the defect params(return the number of used params, just as parseMetadata))
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
-
 	***/
 
+
 	usedparams = parseDefectMetadata(params, numparam, defects_sim);
+
 
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
@@ -292,7 +292,10 @@ int main(int argc, char **argv)
 
 	dx = 1.0 / (double) sim.numpts;
 	numpts3d = (long) sim.numpts * (long) sim.numpts * (long) sim.numpts;
-
+	
+	GlobalDefect defects;
+	defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
+	
 	for (i = 0; i < 3; i++) // particles may never move farther than to the adjacent domain
 	{
 		if (lat.sizeLocal(i)-1 < sim.movelimit)
@@ -319,13 +322,13 @@ int main(int argc, char **argv)
 
     ***/
 
-
     /***
     Add the defect class here and initialise
     ***/
     
     GlobalDefect defects;
     defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
+
 
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
@@ -350,8 +353,9 @@ int main(int argc, char **argv)
 		COUT << " error: baryon_flag > 1 after IC generation, something went wrong in IC generator!" << endl;
 		parallel.abortForce();
 	}
-
+	
 	numspecies = 1 + sim.baryon_flag + cosmo.num_ncdm;
+	
 	parallel.max<double>(maxvel, numspecies);
 
 	if (sim.gr_flag > 0)
@@ -844,12 +848,9 @@ Compute phi
 
 		/***
 		Here we update the strings...
-
 		we have to use a temporary scale factor (just as for the ncdm particles...)
-
 		--determine a number of substep for the string (numsteps_strings), which is dependent of the value of dtau....
 		(as it is done (745-750) for the ncdm parts.)
-
 		-- perform a loop over the those steps:
 			(all updates are done by dtau / 2 / numsteps_strings)
 				-- update "string momemtum fields" (pi??)
@@ -1027,3 +1028,4 @@ Compute phi
 
 	return 0;
 }
+

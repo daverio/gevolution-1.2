@@ -146,10 +146,11 @@ void GlobalDefect::update_pi(double dt,
   double adot_overa_ = adot_overa;
   
   Site x(pi_defect_.lattice()); 
-  
+
   double c1 = (1.0 - dt_ * (adot_overa_)) / (1.0 + dt_ * (adot_overa_));
   double c2 = dt_ / (1.0 + dt_ * adot_overa_);
   double a2 = a_*a_;
+
 
   for(x.first();x.test();x.next())
   {
@@ -160,6 +161,7 @@ void GlobalDefect::update_pi(double dt,
       lapPhi /= dx_*dx_;
       pi_defect_(x,c) = c1 * pi_defect_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
     }
-  }
+ }
+
 }
 #endif
