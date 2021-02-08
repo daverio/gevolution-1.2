@@ -198,7 +198,6 @@ int main(int argc, char **argv)
 
 	usedparams = parseDefectMetadata(params, numparam, defects_sim);
 
-
 	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
 

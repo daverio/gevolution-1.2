@@ -132,7 +132,7 @@ double GlobalDefect::potentialprime(Site & x,
                                         int comp)
 {
   double phiNorm2 = 0;
-  for(int i =0; i <defects_sim_->nComponents; i++)phiNorm2 += phi_defect_(x,i)*phi_defect_(x,i);
+  for(int i =0; i < defects_sim_->nComponents; i++)phiNorm2 += phi_defect_(x,i)*phi_defect_(x,i);
   return 2.0 * defects_sim_->lambda * ( phiNorm2 - defects_sim_->eta2) *  phi_defect_(x,comp);
 }
 
