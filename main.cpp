@@ -293,9 +293,6 @@ int main(int argc, char **argv)
 	dx = 1.0 / (double) sim.numpts;
 	numpts3d = (long) sim.numpts * (long) sim.numpts * (long) sim.numpts;
 	
-	GlobalDefect defects;
-	defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
-	
 	for (i = 0; i < 3; i++) // particles may never move farther than to the adjacent domain
 	{
 		if (lat.sizeLocal(i)-1 < sim.movelimit)
