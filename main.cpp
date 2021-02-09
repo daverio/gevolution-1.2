@@ -775,7 +775,11 @@ Compute phi
 				numsteps_ncdm[i] = (int) ceil(dtau * maxvel[i+1+sim.baryon_flag] / dx / sim.movelimit);
 			else numsteps_ncdm[i] = 1;
 		}
-
+        // numsteps for defect
+        if (dtau * maxvel_string > dx * sim.movelimit)
+			numsteps_string = (int) ceil(dtau * maxvel_string / dx / sim.movelimit);
+		else numsteps_string = 1;
+		
 		if (cycle % CYCLE_INFO_INTERVAL == 0)
 		{
 			COUT << " cycle " << cycle << ", time integration information: max |v| = " << maxvel[0] << " (cdm Courant factor = " << maxvel[0] * dtau / dx;
@@ -799,6 +803,8 @@ Compute phi
 				}
 			}
 
+            // TO DO 
+            // output numsteps of the defects
 			COUT << endl;
 		}
 
@@ -858,6 +864,17 @@ Compute phi
 
         defects.update_phi(dtau);
         defects.update_pi(dtau, a, Hconf(a, fourpiG, cosmo));
+        
+
+		
+		tmp = a;
+
+		for (j = 0; j < numsteps_string; j++)
+		{
+		    defects.update_phi(dtau/ 2/ numsteps_string);
+		    defects.update_pi(dtau/2/numsteps_string,tmp,Hconf(tmp, fourpiG, cosmo))
+		    rungekutta4bg(tmp, fourpiG, cosmo, dtau / 2 / numsteps_string);
+		}
 
 
 		// cdm and baryon particle update
