@@ -15,7 +15,6 @@
 
 #include "LATfield2.hpp"
 using namespace LATfield2;
-#include "powerSpectra.hpp"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -56,8 +55,7 @@ public:
   double potentialprime(Site & x, int comp);
   double modsqphi(Site & x);
   double averagephi();
-  
-  
+
 };
 
 
@@ -83,7 +81,6 @@ unsigned long int GlobalDefect::random_seed()
 {
   struct timeval tv;
   gettimeofday(&tv,0);
-//  COUT << "the microsecond is:  "<<tv.tv_usec<<endl;
   return(tv.tv_sec + tv.tv_usec);
 }
 
@@ -97,17 +94,10 @@ void GlobalDefect::generate_init_cond()
 
   gsl_rng_env_setup();
   
-  
-//  struct timeval tv;
-//  gettimeofday(&tv,0);
-
-//  double val  = tv.tv_usec;
   gsl_rng_default_seed = random_seed();
 
   T = gsl_rng_default;
   r = gsl_rng_alloc (T);
-  
-  cout << COLORTEXT_MAGENTA << "initial seed === " << COLORTEXT_RESET << gsl_rng_default_seed << " " << endl;
 
   for(x.first();x.test();x.next())
   {
@@ -155,6 +145,7 @@ void GlobalDefect::update_phi(double *dt)
   phi_defect_.updateHalo(); 
 }
 
+
 double GlobalDefect::potentialprime(Site & x, 
                                         int comp)
 {
@@ -192,6 +183,7 @@ void GlobalDefect::update_pi(double *dt,
 
 }
 
+
 void GlobalDefect::writedefectSnapshots(string h5filename,
                                           const int snapcount)
 {
@@ -207,6 +199,7 @@ void GlobalDefect::writedefectSnapshots(string h5filename,
 #endif
 
 }
+
 
 
 double GlobalDefect::modsqphi(Site &x)
@@ -231,6 +224,7 @@ double GlobalDefect::averagephi()
   double phiaverage_ =  phisum_/pow(size,3); 
   return phiaverage_; 
 }
+
 
 void GlobalDefect::defects_output()
 {	
