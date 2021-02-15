@@ -28,7 +28,7 @@ public:
   virtual void update_phi(double *dt) {};
   virtual void update_pi(double *dt, double *a, double *adot_overa) {};
   virtual void writedefectSnapshots(string h5filename,const int snapcount) {};
-  virtual void defects_output(){};
+  
 };
 
 #endif
