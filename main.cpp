@@ -63,6 +63,7 @@
 #include "velocity.hpp"
 #endif
 
+//#include "defect_base.hpp"
 #include "global_defect.hpp"
 
 using namespace std;
@@ -95,6 +96,7 @@ int main(int argc, char **argv)
 
 	int i, j, cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0, usedparams, numparam = 0, numspecies, done_hij;
 	int numsteps_ncdm[MAX_PCL_SPECIES-2];
+	int numsteps_defect;
 	long numpts3d;
 	int box[3];
 	double dtau, dtau_old, dx, tau, a, fourpiG, tmp, start_time;
@@ -109,7 +111,11 @@ int main(int argc, char **argv)
 	cosmology cosmo;
 	icsettings ic;
 	defects_metadata defects_sim;
+	DefectBase *defects; 
+	GlobalDefect defects_; 
+    defects = &defects_; 
 	double T00hom;
+	
 
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -193,12 +199,15 @@ int main(int argc, char **argv)
 	(parseDefectMetadata should be just as parseMetadata but take care only of the defect params(return the number of used params, just as parseMetadata))
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 	***/
+	
+
+    if(!defects_sim.defect_flag)
+    {
+	    usedparams = parseDefectMetadata(params, numparam, defects_sim);
 
 
-	usedparams = parseDefectMetadata(params, numparam, defects_sim);
-
-
-	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
+		COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
+	}
 
 
 
@@ -322,9 +331,12 @@ int main(int argc, char **argv)
     /***
     Add the defect class here and initialise
     ***/
-    
-    GlobalDefect defects;
-    defects.initialize(&lat, &latFT, dx, &sim, &defects_sim);
+
+
+    if(defects_sim.defect_flag == DEFECT_GLOBAL)
+    {
+        defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+    }
 
 
 	if (ic.generator == ICGEN_BASIC)
@@ -693,6 +705,17 @@ Compute phi
 				, &vi
 #endif
 			);
+			
+
+			/****
+			Writing the snapshots for the defects
+			****/
+
+            if(defects_sim.defect_flag)
+            {
+            	COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+				defects->writedefectSnapshots(h5filename + sim.basename_snapshot, snapcount);
+            }
 
 			snapcount++;
 		}
@@ -727,6 +750,7 @@ Compute phi
 		/***
 		add output of strings...
 		***/
+		
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
 		tmp = a;
@@ -776,9 +800,13 @@ Compute phi
 			else numsteps_ncdm[i] = 1;
 		}
         // numsteps for defect
-        if (dtau * maxvel_string > dx * sim.movelimit)
-			numsteps_string = (int) ceil(dtau * maxvel_string / dx / sim.movelimit);
-		else numsteps_string = 1;
+        
+        if(defects_sim.defect_flag == DEFECT_GLOBAL)
+        {
+            if (0.2 * dx * C_SPEED_OF_LIGHT > dx * sim.movelimit)
+			    numsteps_defect = (int) ceil(0.2 * dx * C_SPEED_OF_LIGHT / dx / sim.movelimit );
+		    else numsteps_defect = 1;
+		}
 		
 		if (cycle % CYCLE_INFO_INTERVAL == 0)
 		{
@@ -802,10 +830,15 @@ Compute phi
 					COUT << ", ";
 				}
 			}
-
+            COUT << endl;
+            
             // TO DO 
             // output numsteps of the defects
-			COUT << endl;
+            
+            if(defects_sim.defect_flag == DEFECT_GLOBAL)
+            {
+                COUT<< " time step subdivision for defect: "<<numsteps_defect<< " dtau is: "<<dtau<<" dx is: "<<dx<<endl;
+            }
 		}
 
 #ifdef BENCHMARK
@@ -862,19 +895,38 @@ Compute phi
 				-- update temporary scale factor
 		***/
 
-        defects.update_phi(dtau);
-        defects.update_pi(dtau, a, Hconf(a, fourpiG, cosmo));
-        
 
-		
-		tmp = a;
+        if(defects_sim.defect_flag == DEFECT_GLOBAL)
+        {
+//            defects->update_phi(&dtau);
+            double vari = Hconf(a, fourpiG, cosmo);
+//            defects->update_pi(&dtau, &a, &vari);
 
-		for (j = 0; j < numsteps_string; j++)
-		{
-		    defects.update_phi(dtau/ 2/ numsteps_string);
-		    defects.update_pi(dtau/2/numsteps_string,tmp,Hconf(tmp, fourpiG, cosmo))
-		    rungekutta4bg(tmp, fourpiG, cosmo, dtau / 2 / numsteps_string);
-		}
+	        int ratio_def;
+	        
+	        if(dtau > (0.2 * dx))
+	        {
+		        ratio_def = dtau / 0.2 / dx;
+	        }
+	        else
+		        ratio_def = 0.2 * dx / dtau;
+		        
+	        COUT<<" the ratio is: "<<ratio_def<<endl;
+
+    		tmp = a;
+            for(i=0; i < ratio_def; i++)
+            {
+    		    for (j = 0; j < numsteps_defect; j++)
+    		    {
+    		    	double DT = 0.2*dx/numsteps_defect;
+    		        defects->update_phi(&DT);
+    		        defects->update_pi(&DT,&tmp,&vari);
+    		        rungekutta4bg(tmp, fourpiG, cosmo, 0.2 * dx / numsteps_defect);
+    		        
+    		    }
+    		}
+    		    COUT<<" comparing tmp and a == "<< tmp<<" "<<a<<endl;
+        }
 
 
 		// cdm and baryon particle update

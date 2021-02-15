@@ -69,6 +69,10 @@
 #define ICFLAG_CORRECT_DISPLACEMENT 1
 #define ICFLAG_KSPHERE              2
 
+#define DEFECT_NONE          0
+#define DEFECT_GLOBAL        1
+#define DEFECT_LOCAL         2
+
 // Identifiers for IC generator modules
 #define ICGEN_BASIC                 0
 #define ICGEN_READ_FROM_DISK        1
@@ -131,6 +135,8 @@
 #define COLORTEXT_RED       "\033[31;1m"
 #define COLORTEXT_YELLOW    "\033[33;1m"
 #define COLORTEXT_RESET     "\033[0m"
+#define COLORTEXT_MAGENTA   "\033[35;1m"
+#define COLORTEXT_BLUE      "\033[34;1m"
 #else
 #define COLORTEXT_WHITE     ""
 #define COLORTEXT_CYAN      ""
@@ -138,6 +144,8 @@
 #define COLORTEXT_RED       ""
 #define COLORTEXT_YELLOW    ""
 #define COLORTEXT_RESET     ""
+#define COLORTEXT_MAGENTA   ""
+#define COLORTEXT_BLUE      ""
 #endif
 
 // Defining the default dissipation settings for the global defects

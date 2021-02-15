@@ -1804,22 +1804,22 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	char par_string[PARAM_MAX_LENGTH];
 	int used_defect_params = 0;
 	defects_sim.dissipation = 0;
-	defects_sim.defect_flag = 0;
+	defects_sim.defect_flag = DEFECT_NONE;
 	
 	if (parseParameter(params, numparam, "defects", par_string))
 	{
 		if (par_string[0] == 'g' || par_string[0] == 'G')
 		{
-			defects_sim.defect_flag = 1 ;
-			COUT << endl<<"defect flag set to: Global Defect"<<endl;
+			defects_sim.defect_flag = DEFECT_GLOBAL ;
+			COUT << endl << COLORTEXT_BLUE << "defect flag set to: Global Defect" << COLORTEXT_RESET << endl;
 		}
 		else if (par_string[0] == 'l' || par_string[0] == 'L')
 		{
-			defects_sim.defect_flag = 2 ;
-			COUT << endl<<"defect flag set to: Local Defect"<<endl;
+			defects_sim.defect_flag = DEFECT_LOCAL ;
+			COUT << endl << COLORTEXT_BLUE << "defect flag set to: Local Defect" << COLORTEXT_RESET << endl;
 		}
 		else if (par_string[0] == 'n' || par_string[0] == 'N')
-			COUT << endl<<"defect flag set to: No Defect"<<endl;
+			COUT << endl << COLORTEXT_BLUE << "defect flag set to: No Defect" << COLORTEXT_RESET << endl;
 		else if (par_string[0] != 'N' && par_string[0] != 'n')
 			COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET << ": setting chosen for defect flag option not recognized, using default (no defect)" << endl;
 	}
@@ -1898,7 +1898,7 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	        }
 	        else
 	        {
-	            COUT << "The dissipation option is set as true for global defect"<<endl<<" the end of dissipation is at = "<< defects_sim.diss_end<<endl<<" the friction coefficient is = "<< defects_sim.friction_coeff<<endl;
+	            COUT << "The dissipation option is set as true for global defect"<<endl<<" the end of dissipation is at = "<< defects_sim.diss_end<<endl<<" the friction coefficient is = " << COLORTEXT_BLUE << defects_sim.friction_coeff << COLORTEXT_RESET << endl;
 	        }
 	    }
 	    else
@@ -1906,7 +1906,7 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	        COUT<< " The dissipation option is set as false."<<endl<<endl;
 	    }
 	    
-	    COUT<< "The global defect parameters used are:"<<" "<<"eta square = "<< defects_sim.eta2<< ", lambda = "<<defects_sim.lambda<<", number of components = "<<defects_sim.nComponents<<endl<<endl;
+	    COUT<< "The global defect parameters used are:"<<" "<<"eta square = " << COLORTEXT_BLUE << defects_sim.eta2 << COLORTEXT_RESET << ", lambda = " << COLORTEXT_BLUE << defects_sim.lambda << COLORTEXT_RESET << ", number of components = " << COLORTEXT_BLUE << defects_sim.nComponents << COLORTEXT_RESET << endl << endl;
 	    
 	}
 	 
