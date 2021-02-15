@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 	int io_size = 0;
 	int io_group_size = 0;
 
-	int i, j, cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0, usedparams, numparam = 0, numspecies, done_hij;
+	int i, j, cycle = 0, snapcount = 0, pkcount = 0, zdefectscount = 0, restartcount = 0, usedparams, numparam = 0, numspecies, done_hij;
 	int numsteps_ncdm[MAX_PCL_SPECIES-2];
 	int numsteps_defect;
 	long numpts3d;
@@ -751,6 +751,16 @@ Compute phi
 		add output of strings...
 		***/
 		
+		// power spectra
+		if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
+		{	
+			COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
+			
+			COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+            
+            defects->defects_output();
+			zdefectscount++;
+		}
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
 		tmp = a;
@@ -925,7 +935,6 @@ Compute phi
     		        
     		    }
     		}
-    		    COUT<<" comparing tmp and a == "<< tmp<<" "<<a<<endl;
         }
 
 

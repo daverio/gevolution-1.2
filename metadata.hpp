@@ -305,5 +305,7 @@ struct defects_metadata
     double friction_coeff;
     int dissipation;
     double diss_end;
+    int num_defect_output;
+    double z_defects[MAX_OUTPUTS];
 };
 #endif

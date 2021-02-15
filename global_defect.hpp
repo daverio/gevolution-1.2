@@ -50,9 +50,13 @@ public:
   void update_phi(double *dt);
   void update_pi(double *dt, double *a, double *adot_overa);
   void writedefectSnapshots(string h5filename,const int snapcount);
+  void defects_output(); 
   
   unsigned long int random_seed();
   double potentialprime(Site & x, int comp);
+  double modsqphi(Site & x);
+  double averagephi();
+  
 };
 
 
@@ -201,6 +205,36 @@ void GlobalDefect::writedefectSnapshots(string h5filename,
 		pi_defect_.saveHDF5(h5filename + filename_def + "_pi_defect_.h5");
 #endif
 
+}
+
+
+double GlobalDefect::modsqphi(Site &x)
+{
+  double phiNorm2 = 0;
+  for(int i = 0; i < defects_sim_->nComponents; i++ ) phiNorm2 += phi_defect_(x,i) * phi_defect_(x,i) ;
+  return pow(phiNorm2,0.5);
+}
+
+double GlobalDefect::averagephi()
+{
+  Site x(phi_defect_.lattice());
+  double phisum_ = 0;
+  for(x.first();x.test();x.next())
+  {
+    phisum_ += modsqphi(x);
+  }
+  parallel.sum(phisum_);
+  
+  double size = sim_->numpts;
+  COUT << " Size = " << size << endl;
+  double phiaverage_ =  phisum_/pow(size,3); 
+  return phiaverage_; 
+}
+
+void GlobalDefect::defects_output()
+{	
+	double val = averagephi(); 
+	COUT << " The average value of the field is = " << COLORTEXT_MAGENTA << val << COLORTEXT_RESET << endl; 
 }
 
 #endif

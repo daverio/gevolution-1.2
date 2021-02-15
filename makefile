@@ -1,6 +1,6 @@
 # programming environment
 COMPILER     := mpic++
-INCLUDE      := # add the path to LATfield2 and other libraries (if necessary)
+INCLUDE      := -I/home/maulik/LATfield2 -I/usr/local/include # add the path to LATfield2 and other libraries (if necessary)
 LIB          := -lfftw3 -lm -lhdf5 -lgsl -lgslcblas
 HPXCXXLIB    := -lhealpix_cxx -lcfitsio
 
@@ -22,7 +22,7 @@ DGEVOLUTION  := -DPHINONLINEAR
 DGEVOLUTION  += -DBENCHMARK
 DGEVOLUTION  += -DEXACT_OUTPUT_REDSHIFTS
 #DGEVOLUTION  += -DVELOCITY      # enables velocity field utilities
-#DGEVOLUTION  += -DCOLORTERMINAL
+DGEVOLUTION  += -DCOLORTERMINAL
 #DGEVOLUTION  += -DCHECK_B
 #DGEVOLUTION  += -DHAVE_CLASS    # requires LIB -lclass
 #DGEVOLUTION  += -DHAVE_HEALPIX  # requires LIB -lchealpix
