@@ -1805,6 +1805,7 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	int used_defect_params = 0;
 	defects_sim.dissipation = 0;
 	defects_sim.defect_flag = DEFECT_NONE;
+	defects_sim.num_defect_output = MAX_OUTPUTS;
 	
 	if (parseParameter(params, numparam, "defects", par_string))
 	{
