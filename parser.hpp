@@ -1831,7 +1831,7 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 #endif
 	}
 	
-	if (defects_sim.defect_flag==1)
+	if (defects_sim.defect_flag==DEFECT_GLOBAL)
 	{
 	    COUT << "Parsing Global Defects parameters"<<endl<<endl;
 	    
@@ -1905,6 +1905,10 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	    {
 	        COUT<< " The dissipation option is set as false."<<endl<<endl;
 	    }
+	    
+	    parseParameter(params, numparam, "defects redshifts", defects_sim.z_defects, defects_sim.num_defect_output);
+		if (defects_sim.num_defect_output > 0)
+			qsort((void *) defects_sim.z_defects, (size_t) defects_sim.num_defect_output, sizeof(double), sort_descending);
 	    
 	    COUT<< "The global defect parameters used are:"<<" "<<"eta square = " << COLORTEXT_BLUE << defects_sim.eta2 << COLORTEXT_RESET << ", lambda = " << COLORTEXT_BLUE << defects_sim.lambda << COLORTEXT_RESET << ", number of components = " << COLORTEXT_BLUE << defects_sim.nComponents << COLORTEXT_RESET << endl << endl;
 	    
