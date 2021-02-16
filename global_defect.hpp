@@ -162,10 +162,21 @@ void GlobalDefect::update_pi(double *dt,
   double *dt_ = dt;
   double *a_ = a;
   double *adot_overa_ = adot_overa;
+  double friction_coefficient;
   
   Site x(pi_defect_.lattice()); 
-
-  double c1 = (1.0 - *dt_ * (*adot_overa_)) / (1.0 + *dt_ * (*adot_overa_));
+  
+  if(defects_sim_->dissipation)
+  {
+    if(*a < 1 / (1 + defects_sim_->diss_end) )
+    {
+        friction_coefficient = defects_sim_->friction_coeff;
+    }
+    else
+        friction_coefficient = 1;
+  }
+  
+  double c1 = (1.0 - *dt_ * friction_coefficient * (*adot_overa_)) / (1.0 + *dt_ * friction_coefficient * (*adot_overa_));
   double c2 = *dt_ / (1.0 + *dt_ * (*adot_overa_));
   double a2 = *a_ * *a_;
 
