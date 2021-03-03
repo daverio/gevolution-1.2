@@ -43,8 +43,8 @@ private:
   Field<double> phi_defect_;
   Field<double> pi_defect_;
   Field<double> pi_defect_prev_;
-  Field<double> rho_;
-  Field<double>P_;
+  Field<double> T00_defect_;
+  Field<double>Tii_defect_;
 
 public:
   void initialize(Lattice * lat, Lattice * klat, double *dx, metadata * sim, defects_metadata * defects_sim);
@@ -54,7 +54,7 @@ public:
   void update_pi(double *dt, double *a, double *adot_overa);
   void writedefectSnapshots(string h5filename,const int snapcount);
   void defects_stat_output(); 
-  void compute_Tuv(double a, string h5filename, const int count);
+  void compute_Tuv_defect(double a, string h5filename, const int count);
   
   unsigned long int random_seed();
   double potentialprime(Site & x, int comp);
@@ -83,11 +83,11 @@ void GlobalDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metadat
   pi_defect_prev_.initialize(*lat_, defects_sim_->nComponents);
   pi_defect_prev_.alloc();
 
-  rho_.initialize(*lat_);
-  rho_.alloc();
+  T00_defect_.initialize(*lat_);
+  T00_defect_.alloc();
 
-  P_.initialize(*lat_);
-  P_.alloc();
+  Tii_defect_.initialize(*lat_);
+  Tii_defect_.alloc();
 
   generate_init_cond();
 }
@@ -221,7 +221,7 @@ double GlobalDefect::potential(Site & x)
     return defects_sim_->lambda * ( phiNorm2 - defects_sim_->eta2) * ( phiNorm2 - defects_sim_->eta2) / 2.0;
 }
 
-void GlobalDefect::compute_Tuv(double a, string h5filename, const int count)
+void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int count)
 {
     Site x(phi_defect_.lattice());
 
@@ -241,8 +241,8 @@ void GlobalDefect::compute_Tuv(double a, string h5filename, const int count)
           gradPhi2 += temp*temp;
         }
       }
-      rho_(x) = mpidot / 2.0 / a2 + potential(x) + gradPhi2  / 2.0 / a2;
-      P_(x) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+      T00_defect_(x) = mpidot / 2.0 / a2 + potential(x) + gradPhi2  / 2.0 / a2;
+      Tii_defect_(x) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
     }
     string path_ = "/Thesis/progs/gevolution-defect/defect/";
     
@@ -252,7 +252,7 @@ void GlobalDefect::compute_Tuv(double a, string h5filename, const int count)
 #ifdef EXTERNAL_IO
     COUT << "Currently defect snapshot does not work with external IO" << endl;
 #else
-		rho_.saveHDF5(h5filename + filename_def + "_rho_.h5");
+		T00_defect_.saveHDF5(h5filename + filename_def + "_T00_defect_.h5");
 #endif
 
    
@@ -317,7 +317,7 @@ double GlobalDefect::averagerhodefect(const double a)
 
 	for(x.first();x.test();x.next())
 	{
-		rhosum_ += rho_(x);
+		rhosum_ += T00_defect_(x);
 	}
 	parallel.sum(rhosum_);
 	rhoavg_ = rhosum_/lat3;

@@ -29,7 +29,7 @@ public:
   virtual void update_pi(double *dt, double *a, double *adot_overa) {};
   virtual void writedefectSnapshots(string h5filename,const int snapcount) {};
   virtual void defects_stat_output(){};
-  virtual void compute_Tuv(double a, string h5filename, const int count) {};
+  virtual void compute_Tuv_defect(double a, string h5filename, const int count) {};
 };
 
 #endif
