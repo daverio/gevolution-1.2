@@ -39,8 +39,12 @@ private:
     metadata * sim_;
     defects_metadata * defects_sim_;
 */    
+  
   Field<double> phi_defect_;
   Field<double> pi_defect_;
+  Field<double> pi_defect_prev_;
+  Field<double> rho_;
+  Field<double>P_;
 
 public:
   void initialize(Lattice * lat, Lattice * klat, double *dx, metadata * sim, defects_metadata * defects_sim);
@@ -49,12 +53,15 @@ public:
   void update_phi(double *dt);
   void update_pi(double *dt, double *a, double *adot_overa);
   void writedefectSnapshots(string h5filename,const int snapcount);
-  void defects_output(); 
+  void defects_stat_output(); 
+  void compute_Tuv(double a, string h5filename, const int count);
   
   unsigned long int random_seed();
   double potentialprime(Site & x, int comp);
   double modsqphi(Site & x);
   double averagephi();
+  double averagerhodefect(const double a);
+  double potential(Site & x);
 
 };
 
@@ -72,6 +79,15 @@ void GlobalDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metadat
 
   pi_defect_.initialize(*lat_, defects_sim_->nComponents);
   pi_defect_.alloc();
+
+  pi_defect_prev_.initialize(*lat_, defects_sim_->nComponents);
+  pi_defect_prev_.alloc();
+
+  rho_.initialize(*lat_);
+  rho_.alloc();
+
+  P_.initialize(*lat_);
+  P_.alloc();
 
   generate_init_cond();
 }
@@ -162,7 +178,7 @@ void GlobalDefect::update_pi(double *dt,
   double *dt_ = dt;
   double *a_ = a;
   double *adot_overa_ = adot_overa;
-  double friction_coefficient;
+  double friction_coefficient = 1;
   
   Site x(pi_defect_.lattice()); 
   
@@ -180,6 +196,9 @@ void GlobalDefect::update_pi(double *dt,
   double c2 = *dt_ / (1.0 + *dt_ * (*adot_overa_));
   double a2 = *a_ * *a_;
 
+  double * temp = pi_defect_prev_.data_;
+  pi_defect_prev_.data_ = pi_defect_.data_;
+  pi_defect_.data_ = temp;
 
   for(x.first();x.test();x.next())
   {
@@ -187,12 +206,59 @@ void GlobalDefect::update_pi(double *dt,
     {
       double lapPhi = -6.0 * phi_defect_(x,c) ;
       for(int i = 0 ; i<3 ; i++)lapPhi += phi_defect_(x+i,c) + phi_defect_(x-i,c);
-      lapPhi /= *dx_ * *dx_;
-      pi_defect_(x,c) = c1 * pi_defect_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
+      lapPhi /= sim_->boxsize * sim_->boxsize * *dx_ * *dx_;
+      pi_defect_(x,c) = c1 * pi_defect_prev_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
     }
  }
 
 }
+
+
+double GlobalDefect::potential(Site & x)
+{
+    double phiNorm2 = 0;
+    for(int i =0; i < defects_sim_->nComponents; i++) phiNorm2 += phi_defect_(x,i) * phi_defect_(x,i);
+    return defects_sim_->lambda * ( phiNorm2 - defects_sim_->eta2) * ( phiNorm2 - defects_sim_->eta2) / 2.0;
+}
+
+void GlobalDefect::compute_Tuv(double a, string h5filename, const int count)
+{
+    Site x(phi_defect_.lattice());
+
+    double a2 = a * a;
+    for(x.first();x.test();x.next())
+    {
+      double mpidot = 0;
+      double temp;
+      double gradPhi2 = 0;
+      for(int c=0; c < defects_sim_->nComponents;c++)
+      {
+        temp = (pi_defect_prev_(x,c)+pi_defect_(x,c))/2.0;
+        mpidot = temp*temp;
+        for(int i = 0;i<3;i++)
+        {
+          temp = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / sim_->boxsize / *dx_;
+          gradPhi2 += temp*temp;
+        }
+      }
+      rho_(x) = mpidot / 2.0 / a2 + potential(x) + gradPhi2  / 2.0 / a2;
+      P_(x) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+    }
+    string path_ = "/Thesis/progs/gevolution-defect/defect/";
+    
+    char filename_def[2*PARAM_MAX_LENGTH+24];
+    sprintf(filename_def, "%05d", count);
+    
+#ifdef EXTERNAL_IO
+    COUT << "Currently defect snapshot does not work with external IO" << endl;
+#else
+		rho_.saveHDF5(h5filename + filename_def + "_rho_.h5");
+#endif
+
+   
+    
+}
+
 
 
 void GlobalDefect::writedefectSnapshots(string h5filename,
@@ -202,8 +268,7 @@ void GlobalDefect::writedefectSnapshots(string h5filename,
     sprintf(filename_def, "%03d", snapcount);
 
 #ifdef EXTERNAL_IO
-		phi_defect_->saveHDF5_server_write();
-		pi_defect_->saveHDF5_server_write();
+        COUT << "Currently defect snapshot does not work with external IO" << endl;
 #else
 		phi_defect_.saveHDF5(h5filename + filename_def + "_phi_defect_.h5");
 		pi_defect_.saveHDF5(h5filename + filename_def + "_pi_defect_.h5");
@@ -231,16 +296,33 @@ double GlobalDefect::averagephi()
   parallel.sum(phisum_);
   
   double size = sim_->numpts;
-  COUT << " Size = " << size << endl;
   double phiaverage_ =  phisum_/pow(size,3); 
   return phiaverage_; 
 }
 
 
-void GlobalDefect::defects_output()
+void GlobalDefect::defects_stat_output()
 {	
 	double val = averagephi(); 
 	COUT << " The average value of the field is = " << COLORTEXT_MAGENTA << val << COLORTEXT_RESET << endl; 
 }
+
+double GlobalDefect::averagerhodefect(const double a)
+{
+	Site x(phi_defect_.lattice());
+	double rhoavg_;
+	double rhosum_ = 0;
+	double latsize = sim_->numpts;
+	double lat3 = latsize*latsize*latsize;
+
+	for(x.first();x.test();x.next())
+	{
+		rhosum_ += rho_(x);
+	}
+	parallel.sum(rhosum_);
+	rhoavg_ = rhosum_/lat3;
+	return rhoavg_;
+}
+
 
 #endif

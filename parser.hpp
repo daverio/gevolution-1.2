@@ -1912,6 +1912,19 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 			qsort((void *) defects_sim.z_defects, (size_t) defects_sim.num_defect_output, sizeof(double), sort_descending);
 	    
 	    COUT<< "The global defect parameters used are:"<<" "<<"eta square = " << COLORTEXT_BLUE << defects_sim.eta2 << COLORTEXT_RESET << ", lambda = " << COLORTEXT_BLUE << defects_sim.lambda << COLORTEXT_RESET << ", number of components = " << COLORTEXT_BLUE << defects_sim.nComponents << COLORTEXT_RESET << endl << endl;
+	 
+	    parseParameter(params, numparam, "defectprevolution redshift", defects_sim.z_ic_defects);
+		if (defects_sim.z_ic_defects <= 0 || !isfinite(defects_sim.z_ic_defects) )
+		{
+		        COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the start of defect prevolution redshift not set properly!" << endl;
+    #ifdef LATFIELD2_HPP
+		        parallel.abortForce();
+    #endif
+	    }
+	    else
+	        COUT<< "The global defect prevolution redshift is:"<< COLORTEXT_BLUE << defects_sim.z_ic_defects << COLORTEXT_RESET << endl;
+	    
+	    
 	    
 	}
 	 

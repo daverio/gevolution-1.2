@@ -65,6 +65,7 @@
 
 //#include "defect_base.hpp"
 #include "global_defect.hpp"
+#include "ic_defect.hpp"
 
 using namespace std;
 using namespace LATfield2;
@@ -336,9 +337,10 @@ int main(int argc, char **argv)
     if(defects_sim.defect_flag == DEFECT_GLOBAL)
     {
         defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+        generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename);
     }
 
-
+    
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
 	else if (ic.generator == ICGEN_READ_FROM_DISK)
@@ -357,6 +359,21 @@ int main(int argc, char **argv)
 		parallel.abortForce();
 	}
 
+	/***
+	 Recalculate phi chi and bi here after IC of defects and particles
+	 
+	 Calculating phi:
+	 	1) add T00 of defects to source
+	 	2) proceed as done in line 545-590
+	 In similar way do for chi
+	 	1) add T0i of defects to Sij?
+	 	2) proceed as done in line 622-651
+	 To calculate Bi
+	 	1) add Tij of defects to 
+	 	2) proceed as done in 660-692
+	 
+	***/
+	
 	if (sim.baryon_flag > 1)
 	{
 		COUT << " error: baryon_flag > 1 after IC generation, something went wrong in IC generator!" << endl;
@@ -714,7 +731,7 @@ Compute phi
             if(defects_sim.defect_flag)
             {
             	COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
-				defects->writedefectSnapshots(h5filename + sim.basename_snapshot, snapcount);
+            	defects->writedefectSnapshots(h5filename, snapcount);
             }
 
 			snapcount++;
@@ -751,14 +768,13 @@ Compute phi
 		add output of strings...
 		***/
 		
-		// power spectra
 		if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
 		{	
 			COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
 			
 			COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
             
-            defects->defects_output();
+            defects->defects_stat_output();
 			zdefectscount++;
 		}
 
@@ -813,8 +829,8 @@ Compute phi
         
         if(defects_sim.defect_flag == DEFECT_GLOBAL)
         {
-            if (0.2 * dx * C_SPEED_OF_LIGHT > dx * sim.movelimit)
-			    numsteps_defect = (int) ceil(0.2 * dx * C_SPEED_OF_LIGHT / dx / sim.movelimit );
+            if (0.2 * dtau * C_SPEED_OF_LIGHT > dx * sim.movelimit)
+			    numsteps_defect = (int) ceil(0.2 * dtau * C_SPEED_OF_LIGHT / dx / sim.movelimit );
 		    else numsteps_defect = 1;
 		}
 		
@@ -908,33 +924,18 @@ Compute phi
 
         if(defects_sim.defect_flag == DEFECT_GLOBAL)
         {
-//            defects->update_phi(&dtau);
             double vari = Hconf(a, fourpiG, cosmo);
-//            defects->update_pi(&dtau, &a, &vari);
-
-	        int ratio_def;
-	        
-	        if(dtau > (0.2 * dx))
-	        {
-		        ratio_def = dtau / 0.2 / dx;
-	        }
-	        else
-		        ratio_def = 0.2 * dx / dtau;
-		        
-	        COUT<<" the ratio is: "<<ratio_def<<endl;
-
     		tmp = a;
-            for(i=0; i < ratio_def; i++)
-            {
-    		    for (j = 0; j < numsteps_defect; j++)
-    		    {
-    		    	double DT = 0.2*dx/numsteps_defect;
-    		        defects->update_phi(&DT);
-    		        defects->update_pi(&DT,&tmp,&vari);
-    		        rungekutta4bg(tmp, fourpiG, cosmo, 0.2 * dx / numsteps_defect);
-    		        
-    		    }
-    		}
+            double DT = dtau / numsteps_defect;
+		    for (j = 0; j < numsteps_defect; j++)
+		    {
+		        defects->update_phi(&DT);
+		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
+		        defects->update_pi(&DT,&tmp,&vari);
+		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
+		        
+		    }
+		
         }
 
 
