@@ -88,8 +88,9 @@ void GlobalDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metadat
 
   Tii_defect_.initialize(*lat_);
   Tii_defect_.alloc();
-
-  generate_init_cond();
+  
+  Tuv_defect_.initialize(*lat_,4,4,symmetric);
+  Tuv_defect_.alloc();
 }
 
 
@@ -241,8 +242,11 @@ void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int cou
           gradPhi2 += temp*temp;
         }
       }
-      T00_defect_(x) = mpidot / 2.0 / a2 + potential(x) + gradPhi2  / 2.0 / a2;
-      Tii_defect_(x) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+      
+      Tuv_defect_(x, 0, 0) = mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2;
+      Tuv_defect_(x, 1, 1) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+      Tuv_defect_(x, 2, 2) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+      Tuv_defect_(x, 3, 3) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
     }
     string path_ = "/Thesis/progs/gevolution-defect/defect/";
     
@@ -317,7 +321,7 @@ double GlobalDefect::averagerhodefect(const double a)
 
 	for(x.first();x.test();x.next())
 	{
-		rhosum_ += T00_defect_(x);
+		rhosum_ += Tuv_defect_(x, 0, 0);
 	}
 	parallel.sum(rhosum_);
 	rhoavg_ = rhosum_/lat3;

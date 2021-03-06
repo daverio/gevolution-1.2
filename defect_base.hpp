@@ -21,6 +21,7 @@ protected:
   double *dx_;
   metadata * sim_;
   defects_metadata * defects_sim_;
+  Field<Real> Tuv_defect_;
   
 public:
   virtual void initialize(Lattice * lat, Lattice * klat, double *dx, metadata * sim, defects_metadata * defects_sim) {};
