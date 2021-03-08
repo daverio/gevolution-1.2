@@ -60,7 +60,7 @@ public:
   double potentialprime(Site & x, int comp);
   double modsqphi(Site & x);
   double averagephi();
-  double averagerhodefect(const double a);
+  double averagerhodefect();
   double potential(Site & x);
 
 };
@@ -136,7 +136,7 @@ void GlobalDefect::generate_init_cond()
   gsl_rng_free (r);
 
   COUT << COLORTEXT_MAGENTA << "Initial Condition for defect is generated" << COLORTEXT_RESET << endl << endl;
-  string path_def = "/home/vilasini/Thesis/progs/gevolution-defect/output/";
+  string path_def = "DATA/media/maulik/DATA/UNIGE/Thesis/gevolution-defect/output/";
 #ifdef EXTERNAL_IO
 	phi_defect_->saveHDF5_server_write();
 	pi_defect_->saveHDF5_server_write();
@@ -227,40 +227,53 @@ void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int cou
     Site x(phi_defect_.lattice());
 
     double a2 = a * a;
+    double temp;
+    double gradPhi[3];
     for(x.first();x.test();x.next())
     {
       double mpidot = 0;
-      double temp;
       double gradPhi2 = 0;
+
       for(int c=0; c < defects_sim_->nComponents;c++)
       {
         temp = (pi_defect_prev_(x,c)+pi_defect_(x,c))/2.0;
-        mpidot = temp*temp;
+        mpidot += temp*temp;
+
         for(int i = 0;i<3;i++)
         {
-          temp = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / sim_->boxsize / *dx_;
-          gradPhi2 += temp*temp;
-        }
+			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / sim_->boxsize / *dx_; 
+		}
+
       }
+
+      gradPhi2 = (gradPhi[0]*gradPhi[0])+(gradPhi[1]*gradPhi[1])+(gradPhi[2]*gradPhi[2]);
       
       Tuv_defect_(x, 0, 0) = mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2;
       Tuv_defect_(x, 1, 1) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+ 
       Tuv_defect_(x, 2, 2) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
       Tuv_defect_(x, 3, 3) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
-    }
-    string path_ = "/Thesis/progs/gevolution-defect/defect/";
-    
-    char filename_def[2*PARAM_MAX_LENGTH+24];
-    sprintf(filename_def, "%05d", count);
-    
-#ifdef EXTERNAL_IO
-    COUT << "Currently defect snapshot does not work with external IO" << endl;
-#else
-		T00_defect_.saveHDF5(h5filename + filename_def + "_T00_defect_.h5");
-#endif
+		
+      Tuv_defect_(x, 1, 0) = gradPhi[1]*sqrt(mpidot);
+      Tuv_defect_(x, 2, 0) = gradPhi[2]*sqrt(mpidot);
+      Tuv_defect_(x, 3, 0) = gradPhi[3]*sqrt(mpidot);
+      Tuv_defect_(x, 2, 1) = gradPhi[2]*gradPhi[1];
+      Tuv_defect_(x, 3, 1) = gradPhi[3]*gradPhi[1];
+      Tuv_defect_(x, 3, 2) = gradPhi[3]*gradPhi[2];
 
-   
+   }
+
+//	if (count%100 == 0)
+//	{   
+//    	char filename_def[2*PARAM_MAX_LENGTH+24];
+//    	sprintf(filename_def, "%05d", count);
     
+//#ifdef EXTERNAL_IO
+//    	COUT << "Currently defect snapshot does not work with external IO" << endl;
+//#else
+//		Tuv_defect_[1].saveHDF5(h5filename + filename_def + "_T00_defect_.h5" );
+//	}
+//#endif 
 }
 
 
@@ -311,7 +324,7 @@ void GlobalDefect::defects_stat_output()
 	COUT << " The average value of the field is = " << COLORTEXT_MAGENTA << val << COLORTEXT_RESET << endl; 
 }
 
-double GlobalDefect::averagerhodefect(const double a)
+double GlobalDefect::averagerhodefect()
 {
 	Site x(phi_defect_.lattice());
 	double rhoavg_;
