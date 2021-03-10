@@ -478,7 +478,14 @@ Start of the main loop:
 		***/
 
 		projection_T00_comm(&source);
-
+		
+		for(x.first(); x.test(); x.next())
+		{
+			COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
+			source(x) += defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
+			COUT << " Source (x) = " << source(x) << endl << endl;
+		}
+			
 #ifdef VELOCITY
 		if ((sim.out_pk & MASK_VEL) || (sim.out_snapshot & MASK_VEL))
 		{
@@ -508,6 +515,12 @@ Start of the main loop:
 			***/
 
 			projection_T0i_comm(&Bi);
+			
+			for(int i = 0;i<3;i++)
+        	{
+				for(x.first(); x.test(); x.next())
+					Bi(x, i) += defects_.Tuv_defect_(x ,i+1 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize;
+			}	
 		}
 
 		projection_init(&Sij);
@@ -527,7 +540,16 @@ Start of the main loop:
 		Add the T_ij component from the string to the fireld "Sij"
 		***/
 		projection_Tij_comm(&Sij);
-
+		
+		for(int i=1;i<4;i++)
+		{
+			for(j=1;j<i;j++)
+        	{
+				for(x.first(); x.test(); x.next())
+					Sij(x, i-1, j-1) += defects_.Tuv_defect_(x ,i ,j) / sim.boxsize / sim.boxsize / sim.boxsize;
+			}	
+		}
+		
 #ifdef BENCHMARK
 		projection_time += MPI_Wtime() - cycle_start_time;
 		ref_time = MPI_Wtime();
@@ -933,9 +955,17 @@ Compute phi
 		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
 		        defects->update_pi(&DT,&tmp,&vari);
 		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
-		        
 		    }
-		
+		    defects->compute_Tuv_defect(a);
+		    double averagephi = defects_.averagephi();
+		    double averagerho = defects_.averagerhodefect();
+            ofstream phifile;
+		    if(parallel.rank() == 0)
+		    {
+			    phifile.open ("average_rho_phi_defect.txt",std::ios_base::app);
+			    phifile << "#main" << " " << (1/tmp) - 1 << " " << tmp << " " << vari << " " << averagephi << " " << averagerho << endl;
+			    phifile.close();
+		    }
         }
 
 

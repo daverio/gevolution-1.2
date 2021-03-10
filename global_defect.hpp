@@ -54,7 +54,8 @@ public:
   void update_pi(double *dt, double *a, double *adot_overa);
   void writedefectSnapshots(string h5filename,const int snapcount);
   void defects_stat_output(); 
-  void compute_Tuv_defect(double a, string h5filename, const int count);
+  void compute_Tuv_defect(double a);
+  void write_Tuv_defect(string h5filename, const int snapcount);
   
   unsigned long int random_seed();
   double potentialprime(Site & x, int comp);
@@ -62,6 +63,7 @@ public:
   double averagephi();
   double averagerhodefect();
   double potential(Site & x);
+  
 
 };
 
@@ -207,7 +209,7 @@ void GlobalDefect::update_pi(double *dt,
     {
       double lapPhi = -6.0 * phi_defect_(x,c) ;
       for(int i = 0 ; i<3 ; i++)lapPhi += phi_defect_(x+i,c) + phi_defect_(x-i,c);
-      lapPhi /= sim_->boxsize * sim_->boxsize * *dx_ * *dx_;
+      lapPhi /=  sim_->boxsize * sim_->boxsize * *dx_ * *dx_;
       pi_defect_(x,c) = c1 * pi_defect_prev_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
     }
  }
@@ -222,7 +224,7 @@ double GlobalDefect::potential(Site & x)
     return defects_sim_->lambda * ( phiNorm2 - defects_sim_->eta2) * ( phiNorm2 - defects_sim_->eta2) / 2.0;
 }
 
-void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int count)
+void GlobalDefect::compute_Tuv_defect(double a)
 {
     Site x(phi_defect_.lattice());
 
@@ -243,7 +245,6 @@ void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int cou
         {
 			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / sim_->boxsize / *dx_; 
 		}
-
       }
 
       gradPhi2 = (gradPhi[0]*gradPhi[0])+(gradPhi[1]*gradPhi[1])+(gradPhi[2]*gradPhi[2]);
@@ -262,20 +263,19 @@ void GlobalDefect::compute_Tuv_defect(double a, string h5filename, const int cou
       Tuv_defect_(x, 3, 2) = gradPhi[3]*gradPhi[2];
 
    }
-
-//	if (count%100 == 0)
-//	{   
-//    	char filename_def[2*PARAM_MAX_LENGTH+24];
-//    	sprintf(filename_def, "%05d", count);
-    
-//#ifdef EXTERNAL_IO
-//    	COUT << "Currently defect snapshot does not work with external IO" << endl;
-//#else
-//		Tuv_defect_[1].saveHDF5(h5filename + filename_def + "_T00_defect_.h5" );
-//	}
-//#endif 
 }
 
+void GlobalDefect::write_Tuv_defect(string h5filename, const int snapcount)
+{
+//    char filename_def[2*PARAM_MAX_LENGTH+24];
+//    sprintf(filename_def, "%05d", snapcount);
+
+//#ifdef EXTERNAL_IO
+//    COUT << "Currently defect snapshot does not work with external IO" << endl;
+//#else
+//    Tuv_defect_[1].saveHDF5(h5filename + filename_def + "_T00_defect_.h5" );
+//#endif
+}
 
 
 void GlobalDefect::writedefectSnapshots(string h5filename,

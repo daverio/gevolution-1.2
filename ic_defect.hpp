@@ -18,7 +18,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 
 	COUT << "Starting the prevolution of defects!" << endl;
 
-	double endz = 0;
+	double endz = z_in;
 	int i =0;
 	double tmp = 1 / (z_ic_defect + 1);
 	double sum = 0;
@@ -44,7 +44,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 		defects->update_pi(&DT,&tmp,&vari);
 		rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
 
-		defects->compute_Tuv_defect(tmp, h5filename, i);
+		defects->compute_Tuv_defect(tmp);
 		
 
 		double averagephi = defects_.averagephi();
@@ -79,7 +79,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 
 	if(sum < 0.988 || sum > 1.02)
 	{
-		defects->compute_Tuv_defect(tmp, h5filename, i);
+		defects->compute_Tuv_defect(tmp);
 		COUT << endl << COLORTEXT_RED << " error " << COLORTEXT_RESET << ": The defect has not reached stable condition !!!" << endl;
 #ifdef LATFIELD2_HPP
 		parallel.abortForce();
@@ -87,7 +87,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 	}
 	else if(sum >= 0.988 || sum <= 1.02)
 	{
-		defects->compute_Tuv_defect(tmp, h5filename, i);
+		defects->compute_Tuv_defect(tmp);
 		COUT << endl << COLORTEXT_BLUE << "The defect has reached stable condition in prevolution " << COLORTEXT_RESET << endl;
 	}
 

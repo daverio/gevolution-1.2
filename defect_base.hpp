@@ -21,16 +21,17 @@ protected:
   double *dx_;
   metadata * sim_;
   defects_metadata * defects_sim_;
-  Field<Real> Tuv_defect_;
-  
+
 public:
+  Field<Real> Tuv_defect_;
   virtual void initialize(Lattice * lat, Lattice * klat, double *dx, metadata * sim, defects_metadata * defects_sim) {};
   virtual void generate_init_cond() {}; 
   virtual void update_phi(double *dt) {};
   virtual void update_pi(double *dt, double *a, double *adot_overa) {};
   virtual void writedefectSnapshots(string h5filename,const int snapcount) {};
   virtual void defects_stat_output(){};
-  virtual void compute_Tuv_defect(double a, string h5filename, const int count) {};
+  virtual void compute_Tuv_defect(double a) {};
+  virtual void write_Tuv_defect(string h5filename, const int snapcount) {};
 };
 
 #endif
