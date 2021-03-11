@@ -29,7 +29,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 	ofstream phifile;
 	if(parallel.rank() == 0)
 	{
-		phifile.open ("average_rho_phi_defect.txt",ios::trunc);
+		phifile.open (h5filename + "/average_rho_phi_defect.txt",ios::trunc);
 		phifile << "#i" << " " << "#z" << " " << "#a" << " " << "#adotovera" << " " << "#average phi" << " " << "#average rho" << endl;
 		phifile.close();
 	}
@@ -53,7 +53,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 
 		if(parallel.rank() == 0)
 		{
-			phifile.open ("average_rho_phi_defect.txt",std::ios_base::app);
+			phifile.open (h5filename + "average_rho_phi_defect.txt",std::ios_base::app);
 			phifile << i << " " << (1/tmp) - 1 << " " << tmp << " " << vari << " " << averagephi << " " << averagerho << endl;
 			phifile.close();
 		}
@@ -79,7 +79,6 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 
 	if(sum < 0.988 || sum > 1.02)
 	{
-		defects->compute_Tuv_defect(tmp);
 		COUT << endl << COLORTEXT_RED << " error " << COLORTEXT_RESET << ": The defect has not reached stable condition !!!" << endl;
 #ifdef LATFIELD2_HPP
 		parallel.abortForce();
@@ -87,7 +86,7 @@ void generateIC_defects(cosmology & cosmo, defects_metadata & defects_sim, const
 	}
 	else if(sum >= 0.988 || sum <= 1.02)
 	{
-		defects->compute_Tuv_defect(tmp);
+		defects_.write_Tuv_defect(h5filename, i);
 		COUT << endl << COLORTEXT_BLUE << "The defect has reached stable condition in prevolution " << COLORTEXT_RESET << endl;
 	}
 

@@ -250,10 +250,10 @@ void GlobalDefect::compute_Tuv_defect(double a)
       gradPhi2 = (gradPhi[0]*gradPhi[0])+(gradPhi[1]*gradPhi[1])+(gradPhi[2]*gradPhi[2]);
       
       Tuv_defect_(x, 0, 0) = mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2;
-      Tuv_defect_(x, 1, 1) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
- 
-      Tuv_defect_(x, 2, 2) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
-      Tuv_defect_(x, 3, 3) = mpidot / 2.0 / a2 - potential(x) - gradPhi2 / 6.0 / a2;
+      
+      Tuv_defect_(x, 1, 1) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[0];
+      Tuv_defect_(x, 2, 2) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[1];
+      Tuv_defect_(x, 3, 3) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[2];
 		
       Tuv_defect_(x, 1, 0) = gradPhi[1]*sqrt(mpidot);
       Tuv_defect_(x, 2, 0) = gradPhi[2]*sqrt(mpidot);
@@ -267,14 +267,14 @@ void GlobalDefect::compute_Tuv_defect(double a)
 
 void GlobalDefect::write_Tuv_defect(string h5filename, const int snapcount)
 {
-//    char filename_def[2*PARAM_MAX_LENGTH+24];
-//    sprintf(filename_def, "%05d", snapcount);
+    char filename_def[2*PARAM_MAX_LENGTH+24];
+    sprintf(filename_def, "%05d", snapcount);
 
-//#ifdef EXTERNAL_IO
-//    COUT << "Currently defect snapshot does not work with external IO" << endl;
-//#else
-//    Tuv_defect_[1].saveHDF5(h5filename + filename_def + "_T00_defect_.h5" );
-//#endif
+#ifdef EXTERNAL_IO
+    COUT << "Currently defect snapshot does not work with external IO" << endl;
+#else
+    Tuv_defect_.saveHDF5(h5filename + filename_def + "_T00_defect_.h5" );
+#endif
 }
 
 
