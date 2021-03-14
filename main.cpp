@@ -67,6 +67,9 @@
 #include "global_defect.hpp"
 #include "ic_defect.hpp"
 
+#include "local_defect.hpp"
+
+
 using namespace std;
 using namespace LATfield2;
 
@@ -112,11 +115,12 @@ int main(int argc, char **argv)
 	cosmology cosmo;
 	icsettings ic;
 	defects_metadata defects_sim;
-	DefectBase *defects; 
-	GlobalDefect defects_; 
-    defects = &defects_; 
+	DefectBase *defects;
+	GlobalDefect defects_;
+    defects = &defects_;
+	LocalDefect loc_defects;
 	double T00hom;
-	
+
 
 #ifndef H5_DEBUG
 	H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -200,7 +204,7 @@ int main(int argc, char **argv)
 	(parseDefectMetadata should be just as parseMetadata but take care only of the defect params(return the number of used params, just as parseMetadata))
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 	***/
-	
+
 
     if(!defects_sim.defect_flag)
     {
@@ -302,7 +306,7 @@ int main(int argc, char **argv)
 
 	dx = 1.0 / (double) sim.numpts;
 	numpts3d = (long) sim.numpts * (long) sim.numpts * (long) sim.numpts;
-	
+
 	for (i = 0; i < 3; i++) // particles may never move farther than to the adjacent domain
 	{
 		if (lat.sizeLocal(i)-1 < sim.movelimit)
@@ -340,7 +344,7 @@ int main(int argc, char **argv)
         generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename);
     }
 
-    
+
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
 	else if (ic.generator == ICGEN_READ_FROM_DISK)
@@ -361,7 +365,7 @@ int main(int argc, char **argv)
 
 	/***
 	 Recalculate phi chi and bi here after IC of defects and particles
-	 
+
 	 Calculating phi:
 	 	1) add T00 of defects to source
 	 	2) proceed as done in line 545-590
@@ -369,19 +373,19 @@ int main(int argc, char **argv)
 	 	1) add T0i of defects to Sij?
 	 	2) proceed as done in line 622-651
 	 To calculate Bi
-	 	1) add Tij of defects to 
+	 	1) add Tij of defects to
 	 	2) proceed as done in 660-692
-	 
+
 	***/
-	
+
 	if (sim.baryon_flag > 1)
 	{
 		COUT << " error: baryon_flag > 1 after IC generation, something went wrong in IC generator!" << endl;
 		parallel.abortForce();
 	}
-	
+
 	numspecies = 1 + sim.baryon_flag + cosmo.num_ncdm;
-	
+
 	parallel.max<double>(maxvel, numspecies);
 
 	if (sim.gr_flag > 0)
@@ -486,7 +490,7 @@ Start of the main loop:
 			for(x.first(); x.test(); x.next())
 			{
 				COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
-				source(x) += defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
+				source(x) += defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize;
 				COUT << " Source (x) = " << source(x) << endl << endl;
 			}
 		}
@@ -525,7 +529,7 @@ Start of the main loop:
 
 			if(defects_sim.defect_flag == DEFECT_GLOBAL)
 			{
-				for(x.first(); x.test(); x.next()) 
+				for(x.first(); x.test(); x.next())
 		    	{
 					for(int i = 0;i<3;i++)
 						Bi(x, i) += a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 );
@@ -564,7 +568,7 @@ Start of the main loop:
 					{
 							Sij(x, i-1, j-1) += a * a * a * defects_.Tuv_defect_(x ,i ,j);
 							// / sim.boxsize / sim.boxsize / sim.boxsize
-					}	
+					}
 				}
 			}
 		}
@@ -764,7 +768,7 @@ Compute phi
 				, &vi
 #endif
 			);
-			
+
 
 			/****
 			Writing the snapshots for the defects
@@ -809,13 +813,13 @@ Compute phi
 		/***
 		add output of strings...
 		***/
-		
+
 		if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
-		{	
+		{
 			COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
-			
+
 			COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
-            
+
             defects->defects_stat_output();
 			zdefectscount++;
 		}
@@ -868,14 +872,14 @@ Compute phi
 			else numsteps_ncdm[i] = 1;
 		}
         // numsteps for defect
-        
+
         if(defects_sim.defect_flag == DEFECT_GLOBAL)
         {
             if (0.2 * dtau * C_SPEED_OF_LIGHT > dx * sim.movelimit)
 			    numsteps_defect = (int) ceil(0.2 * dtau * C_SPEED_OF_LIGHT / dx / sim.movelimit );
 		    else numsteps_defect = 1;
 		}
-		
+
 		if (cycle % CYCLE_INFO_INTERVAL == 0)
 		{
 			COUT << " cycle " << cycle << ", time integration information: max |v| = " << maxvel[0] << " (cdm Courant factor = " << maxvel[0] * dtau / dx;
@@ -899,10 +903,10 @@ Compute phi
 				}
 			}
             COUT << endl;
-            
-            // TO DO 
+
+            // TO DO
             // output numsteps of the defects
-            
+
             if(defects_sim.defect_flag == DEFECT_GLOBAL)
             {
                 COUT<< " time step subdivision for defect: "<<numsteps_defect<< " dtau is: "<<dtau<<" dx is: "<<dx<<endl;
@@ -1154,4 +1158,3 @@ Compute phi
 
 	return 0;
 }
-
