@@ -138,14 +138,6 @@ void GlobalDefect::generate_init_cond()
   gsl_rng_free (r);
 
   COUT << COLORTEXT_MAGENTA << "Initial Condition for defect is generated" << COLORTEXT_RESET << endl << endl;
-  string path_def = "DATA/media/maulik/DATA/UNIGE/Thesis/gevolution-defect/output/";
-#ifdef EXTERNAL_IO
-	phi_defect_->saveHDF5_server_write();
-	pi_defect_->saveHDF5_server_write();
-#else
-	phi_defect_.saveHDF5(path_def + "_phi_defect_init.h5");
-	pi_defect_.saveHDF5(path_def + "_pi_defect_init.h5");
-#endif
 }
 
 
@@ -209,7 +201,7 @@ void GlobalDefect::update_pi(double *dt,
     {
       double lapPhi = -6.0 * phi_defect_(x,c) ;
       for(int i = 0 ; i<3 ; i++)lapPhi += phi_defect_(x+i,c) + phi_defect_(x-i,c);
-      lapPhi /=  sim_->boxsize * sim_->boxsize * *dx_ * *dx_;
+      lapPhi /=   *dx_ * *dx_ ; //  * sim_->boxsize * sim_->boxsize ;
       pi_defect_(x,c) = c1 * pi_defect_prev_(x,c) + c2 * ( lapPhi -  a2 * potentialprime(x,c) );
     }
  }
@@ -243,7 +235,7 @@ void GlobalDefect::compute_Tuv_defect(double a)
 
         for(int i = 0;i<3;i++)
         {
-			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / sim_->boxsize / *dx_; 
+			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ ; // / sim_->boxsize; 
 		}
       }
 
@@ -251,16 +243,16 @@ void GlobalDefect::compute_Tuv_defect(double a)
       
       Tuv_defect_(x, 0, 0) = mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2;
       
-      Tuv_defect_(x, 1, 1) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[0];
-      Tuv_defect_(x, 2, 2) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[1];
-      Tuv_defect_(x, 3, 3) = mpidot / 2.0 / a2 / a2 - potential(x)/ a2 - gradPhi2 / 2.0 / a2 /a2 + gradPhi[2];
+      Tuv_defect_(x, 1, 1) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[0] * gradPhi[0];
+      Tuv_defect_(x, 2, 2) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[1] * gradPhi[1];
+      Tuv_defect_(x, 3, 3) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[2] * gradPhi[2];
 		
-      Tuv_defect_(x, 1, 0) = gradPhi[1]*sqrt(mpidot);
-      Tuv_defect_(x, 2, 0) = gradPhi[2]*sqrt(mpidot);
-      Tuv_defect_(x, 3, 0) = gradPhi[3]*sqrt(mpidot);
-      Tuv_defect_(x, 2, 1) = gradPhi[2]*gradPhi[1];
-      Tuv_defect_(x, 3, 1) = gradPhi[3]*gradPhi[1];
-      Tuv_defect_(x, 3, 2) = gradPhi[3]*gradPhi[2];
+      Tuv_defect_(x, 1, 0) = gradPhi[0]*sqrt(mpidot);
+      Tuv_defect_(x, 2, 0) = gradPhi[1]*sqrt(mpidot);
+      Tuv_defect_(x, 3, 0) = gradPhi[2]*sqrt(mpidot);
+      Tuv_defect_(x, 2, 1) = gradPhi[1]*gradPhi[0];
+      Tuv_defect_(x, 3, 1) = gradPhi[2]*gradPhi[0];
+      Tuv_defect_(x, 3, 2) = gradPhi[2]*gradPhi[1];
 
    }
 }

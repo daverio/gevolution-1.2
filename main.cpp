@@ -485,9 +485,9 @@ Start of the main loop:
 		{
 			for(x.first(); x.test(); x.next())
 			{
-				COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
-				source(x) += defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
-				COUT << " Source (x) = " << source(x) << endl << endl;
+//				COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
+				source(x) -= a * a * a * defects_.Tuv_defect_(x ,0 ,0 ) ; //defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
+//				COUT << " Source (x) = " << source(x) << endl << endl;
 			}
 		}
 
@@ -528,7 +528,7 @@ Start of the main loop:
 				for(x.first(); x.test(); x.next()) 
 		    	{
 					for(int i = 0;i<3;i++)
-						Bi(x, i) += a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 );
+						Bi(x, i) +=  a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 );
 						// sim.boxsize / sim.boxsize / sim.boxsize
 				}
 			}
