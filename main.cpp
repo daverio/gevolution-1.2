@@ -118,7 +118,8 @@ int main(int argc, char **argv)
 	DefectBase *defects;
 	GlobalDefect defects_;
     defects = &defects_;
-	LocalDefect loc_defects;
+	LocalDefect loc_defects_;
+		// defects = &loc_defects_;
 	double T00hom;
 
 
@@ -342,6 +343,14 @@ int main(int argc, char **argv)
     {
         defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
         generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename);
+    }
+
+		// Initialize local defect
+
+		if(defects_sim.defect_flag == DEFECT_LOCAL)
+    {
+        loc_defects_.initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+				loc_defects_.start();
     }
 
 
@@ -774,7 +783,7 @@ Compute phi
 			Writing the snapshots for the defects
 			****/
 
-            if(defects_sim.defect_flag)
+            if(defects_sim.defect_flag == DEFECT_GLOBAL)
             {
             	COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
             	defects->writedefectSnapshots(h5filename, snapcount);
@@ -991,6 +1000,23 @@ Compute phi
 			    phifile.close();
 		    }
         }
+
+
+				//Update local defect
+
+		if(defects_sim.defect_flag == DEFECT_LOCAL)
+		{
+			double aHalfMinus = a;
+			double aHalfPlus = a;
+			rungekutta4bg(aHalfPlus, fourpiG, cosmo, dtau/2.0);
+			rungekutta4bg(aHalfMinus, fourpiG, cosmo, -dtau/2.0);
+
+			// COUT << "aHalfPlus = " << aHalfPlus << "aHalfMinus" <<  aHalfMinus<< endl;
+
+			loc_defects_.nextCosmology(a,aHalfPlus,aHalfMinus);
+			loc_defects_.evolve(dtau, a);
+
+		}
 
 
 		// cdm and baryon particle update

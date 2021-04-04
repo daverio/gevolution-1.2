@@ -3,7 +3,11 @@
 
 #include "defect_base.hpp"
 
-class LocalDefect:public DefectBase
+
+
+// #include <math.h>
+
+class LocalDefect : public DefectBase
 {
 public:
 
@@ -28,7 +32,7 @@ public:
   Field<Real> epsilon;
 
   //Simulation-specific parameters
-    Real lambda;       //quarter of dimensionless potential coupling in action (time dependent)
+    double lambda;       //quarter of dimensionless potential coupling in action (time dependent)
     Real lambdaEnd;    //quarter of dimensionless potential coupling in action (at tEnd)
     Real sigma;          //VEV of scalar product of phi with itself
     Real q;            //charge or rather gauge coupling (time dependent)
@@ -73,7 +77,7 @@ public:
     // void first(double dtau);           //Sets all parameters (eg. time) to start values
     void start();           //Initializes parameters (eg. tEnd=-1 => tEnd=N*dx/2)
     // void next();            //Updates parameters (eg. time) to current values
-    void nextCosmology(double, double, double);
+    void nextCosmology(double a, double aHalfPlus, double aHalfMinus);
 
 };
 
@@ -231,7 +235,6 @@ void LocalDefect::evolve(double dt_, double a)
 void LocalDefect::start()
 {
 
-
   // aCoreGrowth=bgc0.scaleFactor(tCoreGrowth);
 
   aCoreGrowth = 1. / (1. + defects_sim_->z_ic_defects);
@@ -274,7 +277,6 @@ void LocalDefect::start()
 //   this->nextCosmology(a);
 //
 // }
-
 
 
 void LocalDefect::nextCosmology(double a, double aHalfPlus, double aHalfMinus)
@@ -379,7 +381,6 @@ void LocalDefect::nextCosmology(double a, double aHalfPlus, double aHalfMinus)
       // adot_a = bgc0.hubble(t);
     // Real aHalfPlus;   //Scalefactor at timestep plus half step
     // Real aHalfMinus;  //Scalefactor at timestep minus half step
-
 
       lambda = lambdaCoreGrowth * pow( a/aCoreGrowth, -2*(1+lambdaCoreGrowthIndexB) );
       q=qCoreGrowth * pow( a/aCoreGrowth, -(1+qCoreGrowthIndexB) );
