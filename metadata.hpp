@@ -308,5 +308,19 @@ struct defects_metadata
     int num_defect_output;
     double z_defects[MAX_OUTPUTS];
     double z_ic_defects;
+
+		double tStart;
+		double tEnd;
+		double eraA;
+		// double eraB;
+		double tCoreGrowth;
+		double coreGrowthIndexA;
+		double coreGrowthIndexB;
+		double sigma_loc;
+		double lambda_loc;
+		int num_local_defect_output;
+		double z_local_defects[MAX_OUTPUTS];
+		int numberEMconsOutputs;
+
 };
 #endif

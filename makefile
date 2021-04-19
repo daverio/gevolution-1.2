@@ -30,15 +30,16 @@ DGEVOLUTION  += -DEXACT_OUTPUT_REDSHIFTS
 # further compiler options
 OPT          := -O3 -std=c++11
 
+# OPT += -DEMT_CG
+
 $(EXEC): $(SOURCE) $(HEADERS) makefile
 	$(COMPILER) $< -o $@ $(OPT) $(DLATFIELD2) $(DGEVOLUTION) $(INCLUDE) $(LIB)
-	
+
 lccat: lccat.cpp
 	$(COMPILER) $< -o $@ $(OPT) $(DGEVOLUTION) $(INCLUDE)
-	
+
 lcmap: lcmap.cpp
 	$(COMPILER) $< -o $@ $(OPT) -fopenmp $(DGEVOLUTION) $(INCLUDE) $(LIB) $(HPXCXXLIB)
 
 clean:
 	-rm -f $(EXEC) lccat lcmap
-

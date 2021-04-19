@@ -349,8 +349,16 @@ int main(int argc, char **argv)
 
 		if(defects_sim.defect_flag == DEFECT_LOCAL)
     {
-        loc_defects_.initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+        loc_defects_.initialize(&lat, &latFT,dtau, &dx, &sim, &defects_sim, &cosmo, fourpiG);
 				loc_defects_.start();
+
+				loc_defects_.aHalfPlus = a;
+
+				// loc_defects_.emConservationInit(pathStats, runID+".dat");
+				// loc_defects_.emConservationInit(sim.output_path, ".dat");
+
+				loc_defects_.generateIC_defects_test();
+
     }
 
 
@@ -602,7 +610,7 @@ Compute phi
 
 			if (cycle % CYCLE_INFO_INTERVAL == 0)
 			{
-				COUT << " cycle " << cycle << ", background information: z = " << (1./a) - 1. << ", average T00 = " << T00hom << ", background model = " << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm(a, cosmo) << endl;
+				COUT << " cycle " << cycle << ", background information: z = " << (1./a) - 1. << ", average T00 = " << T00hom << ", background model = " << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm(a, cosmo) << ", conformal time = " << tau << endl;
 			}
 
 			if (dtau_old > 0.)
@@ -823,14 +831,38 @@ Compute phi
 		add output of strings...
 		***/
 
-		if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
+		if(defects_sim.defect_flag == DEFECT_GLOBAL)
 		{
-			COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
 
-			COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+			if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
+			{
+				COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
 
-            defects->defects_stat_output();
-			zdefectscount++;
+				COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+
+				defects->defects_stat_output();
+				zdefectscount++;
+			}
+
+		}
+
+		if(defects_sim.defect_flag == DEFECT_LOCAL)
+		{
+
+
+			// loc_defects_.defects_stat_output();
+			loc_defects_.defects_EmConservation_output();
+
+			if (zdefectscount < defects_sim.num_local_defect_output && 1. / a < defects_sim.z_local_defects[zdefectscount] + 1.)
+			{
+				COUT << " Number of outputs are = " << defects_sim.num_local_defect_output  << endl;
+
+				COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+
+				// loc_defects_.defects_stat_output();
+				zdefectscount++;
+			}
+
 		}
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
@@ -1006,15 +1038,18 @@ Compute phi
 
 		if(defects_sim.defect_flag == DEFECT_LOCAL)
 		{
-			double aHalfMinus = a;
-			double aHalfPlus = a;
-			rungekutta4bg(aHalfPlus, fourpiG, cosmo, dtau/2.0);
-			rungekutta4bg(aHalfMinus, fourpiG, cosmo, -dtau/2.0);
+
+
+			loc_defects_.aHalfMinus = loc_defects_.aHalfPlus;
+			loc_defects_.aHalfPlus = a;
+			rungekutta4bg(loc_defects_.aHalfPlus, fourpiG, cosmo, dtau/2.0);
+
+
 
 			// COUT << "aHalfPlus = " << aHalfPlus << "aHalfMinus" <<  aHalfMinus<< endl;
 
-			loc_defects_.nextCosmology(a,aHalfPlus,aHalfMinus);
-			loc_defects_.evolve(dtau, a);
+			// loc_defects_.nextCosmology(a,tau,dtau);
+			loc_defects_.evolve(tau,dtau, a,cycle);
 
 		}
 
