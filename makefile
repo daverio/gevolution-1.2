@@ -1,6 +1,7 @@
 # programming environment
 COMPILER     := mpic++
-INCLUDE      := -I/home/asus/Programs/LATfield2-master -I/home/asus/Programs/hdf5-1.10.1/src/
+# INCLUDE      := -I/home/asus/Programs/LATfield2-master -I/home/asus/Programs/hdf5-1.10.1/src/
+INCLUDE      := -I//home/asus/Programs/LATfield2-master_updated/LATfield2 -I/home/asus/Programs/hdf5-1.10.1/src/
 LIB          := -lfftw3 -lm -lhdf5 -lgsl -lgslcblas -L/home/asus/Programs/hdf5-1.10.1/src/.libs/
 HPXCXXLIB    := -lhealpix_cxx -lcfitsio
 

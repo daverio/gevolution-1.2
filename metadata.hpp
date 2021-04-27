@@ -321,6 +321,13 @@ struct defects_metadata
 		int num_local_defect_output;
 		double z_local_defects[MAX_OUTPUTS];
 		int numberEMconsOutputs;
+		int numberFieldOutputs;							//Number of field outputs (excluding initial conditions)
+		string spacingFieldOutputs;
+		int tFields;
+
+		int     initialConditionsType;
+		double*   initialConditionsParams;
+
 
 };
 #endif

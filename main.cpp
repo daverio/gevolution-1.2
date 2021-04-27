@@ -69,6 +69,9 @@
 
 #include "local_defect.hpp"
 
+#include <memory>
+
+
 
 using namespace std;
 using namespace LATfield2;
@@ -115,10 +118,28 @@ int main(int argc, char **argv)
 	cosmology cosmo;
 	icsettings ic;
 	defects_metadata defects_sim;
+
 	DefectBase *defects;
 	GlobalDefect defects_;
-    defects = &defects_;
+  defects = &defects_;
 	LocalDefect loc_defects_;
+
+
+
+std::shared_ptr<LocalDefect> loc_defects;
+
+
+
+
+
+
+
+// std::shared_ptr<DefectBase> defects;
+//
+// defects = std::make_shared<LocalDefect>();
+
+
+	// LocalDefect loc_defects_;
 		// defects = &loc_defects_;
 	double T00hom;
 
@@ -211,6 +232,11 @@ int main(int argc, char **argv)
     {
 	    usedparams = parseDefectMetadata(params, numparam, defects_sim);
 
+
+			// if(defects_sim.defect_flag == DEFECT_LOCAL)
+			// {
+			// defect = std::make_shared<LocalDefect>();
+			// }
 
 		COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 	}
@@ -349,15 +375,27 @@ int main(int argc, char **argv)
 
 		if(defects_sim.defect_flag == DEFECT_LOCAL)
     {
+			  // loc_defects->initialize(&lat, &latFT,dtau, &dx, &sim, &defects_sim, &cosmo, fourpiG);
         loc_defects_.initialize(&lat, &latFT,dtau, &dx, &sim, &defects_sim, &cosmo, fourpiG);
+
+				// loc_defects->start();
 				loc_defects_.start();
 
+				// loc_defects->aHalfPlus = a;
 				loc_defects_.aHalfPlus = a;
 
 				// loc_defects_.emConservationInit(pathStats, runID+".dat");
 				// loc_defects_.emConservationInit(sim.output_path, ".dat");
 
-				loc_defects_.generateIC_defects_test();
+				// loc_defects->generateIC_defects_test();
+				// loc_defects_.generateIC_defects_test();
+
+				COUT<<"Generating initial conditions..."<<endl;
+
+				if(defects_sim.initialConditionsType>-1)
+        {
+            loc_defects_.initialConditions(defects_sim.initialConditionsType, defects_sim.initialConditionsParams);
+        }
 
     }
 
@@ -849,8 +887,10 @@ Compute phi
 		if(defects_sim.defect_flag == DEFECT_LOCAL)
 		{
 
+			// loc_defects->defects_stat_output();
+			// loc_defects->defects_EmConservation_output();
 
-			// loc_defects_.defects_stat_output();
+			loc_defects_.defects_stat_output();
 			loc_defects_.defects_EmConservation_output();
 
 			if (zdefectscount < defects_sim.num_local_defect_output && 1. / a < defects_sim.z_local_defects[zdefectscount] + 1.)
@@ -1040,6 +1080,9 @@ Compute phi
 		{
 
 
+			// loc_defects->aHalfMinus = loc_defects->aHalfPlus;
+			// loc_defects->aHalfPlus = a;
+			// rungekutta4bg(loc_defects->aHalfPlus, fourpiG, cosmo, dtau/2.0);
 			loc_defects_.aHalfMinus = loc_defects_.aHalfPlus;
 			loc_defects_.aHalfPlus = a;
 			rungekutta4bg(loc_defects_.aHalfPlus, fourpiG, cosmo, dtau/2.0);
@@ -1048,7 +1091,7 @@ Compute phi
 
 			// COUT << "aHalfPlus = " << aHalfPlus << "aHalfMinus" <<  aHalfMinus<< endl;
 
-			// loc_defects_.nextCosmology(a,tau,dtau);
+			// loc_defects->evolve(tau,dtau, a,cycle);
 			loc_defects_.evolve(tau,dtau, a,cycle);
 
 		}

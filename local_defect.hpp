@@ -2,6 +2,7 @@
 #define LOCAL_DEFECT_HPP
 
 #include "defect_base.hpp"
+#include "RandGen.hpp"
 
 
 
@@ -92,6 +93,9 @@ public:
 
   void generateIC_defects_test();
 
+  void initialConditions(int type, Real* params);
+  void initialConditionsType4(Real* params);
+
   // void initialize();
 
 //CORE FUNCTIONS
@@ -134,9 +138,15 @@ public:
 
     //Output fields============================
 
-    bool timeToDoIt(int step, int number, int startStep, int endStep, string spacing)
-    int roundNearest(double input)
+    int timeStepFields;
 
+    bool timeToDoIt(int step, int number, int startStep, int endStep, string spacing);
+    int roundNearest(double input);
+
+
+
+    //Output fields============================
+    void saveFields(string preString, string postString);
 
 };
 
@@ -150,7 +160,7 @@ public:
 LocalDefect::LocalDefect()
 {
   dim = 3;
-  // N = 32;
+  // N = 32; //here this is
 
   phase = 2;
 
@@ -188,8 +198,8 @@ void LocalDefect::initialize(Lattice * lat, Lattice * klat, double dt_, double *
   cosmo = cosmo_;
   fourpiG = fourpiG_;
 
-  phi.initialize(*lat_,1);
-  pi.initialize(*lat_,1);
+  phi.initialize(*lat_);
+  pi.initialize(*lat_);
   theta.initialize(*lat_, dim);
   epsilon.initialize(*lat_, dim);
   phi.alloc();
@@ -215,6 +225,17 @@ void LocalDefect::initialize(Lattice * lat, Lattice * klat, double dt_, double *
     {
       outputEMconsEvery = timeStepEnd / defects_sim_->numberEMconsOutputs;
       if( outputEMconsEvery < 3 ) { outputEMconsEvery = 3; }
+    }
+
+
+//Output fields
+    if( defects_sim_->numberFieldOutputs  > 0 )
+    {
+//      timeStepFields = floor( (tFields - sim.tStart) / sim.dt )+1;
+      timeStepFields = roundNearest( (defects_sim_->tFields -tStart) /dt );
+      // if(timeStepFields==0) { timeStepFields = 1; }  // Really necessary only if output spacing is logarithmic - and timeToDoIt catches this.
+      //outputFieldsEvery = (timeStepEnd - timeStepFields + 1)/ numberFieldOutputs;
+      // timeStepFields-=outputFieldsEvery-2;
     }
 
 
@@ -254,6 +275,48 @@ void LocalDefect::initialize(Lattice * lat, Lattice * klat, double dt_, double *
 
     // }
 
+}
+
+//============================================
+//INITIAL CONDITIONS==========================
+//============================================
+
+void LocalDefect::initialConditions(int type, Real* params)
+{
+  // if(type==1)
+  //   {
+  //     //|phi|=params[1]*sigma, arg(phi)=uniform random, pi=0, theta=0, epsilon=0
+  //     initialConditionsType1(params);
+  //   }
+  // if(type==2)
+  //   {
+  //     //|pi|=b*sigma, arg(pi)=uniform random, phi=0, theta=0, epsilon=0
+  //     initialConditionsType2(params);
+  //   }
+  // if(type==3)
+  //   {
+  //     //|phi|=sigma, arg(phi)=uniform random
+  //     //theta = GRF with spectrum 1/k^2
+  //     //pi=0, epsilon=0
+  //     initialConditionsType3(params);
+  //   }
+  if(type==4)
+    {
+      //phi = GRF with spectrum B * exp(-(ktau)^2/2(ktau)_0^2)
+      //theta = GRF with spectrum A * k^2
+      //pi=0, epsilon=0
+      initialConditionsType4(params);
+    }
+  // if(type==5)
+  //   {
+  //     //Bz is positive for x<N/2 and negative for x>N/2
+  //     initialConditionsType5(params);
+  //   }
+  //     /*if(type==6) // Should maybe overload initialConditions() instead of calling Type6 directly?
+  //     {
+  //         //simple wave
+	//   initialConditionsType6(params);
+  //     }*/
 }
 
 void LocalDefect::generateIC_defects_test()
@@ -299,6 +362,320 @@ theta.updateHalo();
 
 
 }
+
+
+void LocalDefect::initialConditionsType4(Real* params)
+{
+
+    Site x(*lat_);
+
+    Real kSqu;
+    Real std; //sigma of real and imaginary parts of GRF
+    Real constant; //terms outside bracket in phi power spectrum
+    Real sumModPhiSqu;
+
+
+    //Initialize random number generator
+    randGen.initialize( int(params[0]),2,32 );
+
+// COUT << "The parameters:" << params[0] << endl << params[1] << endl<< params[2] << endl << params[3] << endl << params[4] << endl ;
+
+// COUT <<  "The parameters:" <<  M_PI << endl ;
+    /////////////////////////////////////////////
+    ////// Generate Theta and Epsilon ///////////
+    /////////////////////////////////////////////
+
+    //theta need to be out of place ! as it is r2c
+    //create ktheta and site
+    Lattice kHalfLattice;
+    kHalfLattice.initializeRealFFT(*lat_,0); //ktheta have 0 halo
+    Field<Imag> kTheta;
+    kTheta.initialize(kHalfLattice,dim);
+    rKSite KT(kHalfLattice);
+
+    //deloc epsilon + alloc kTheta + create planer
+    epsilon.dealloc();
+    PlanFFT<Imag> planTheta;
+    planTheta.initialize(&theta,&kTheta,FFT_OUT_OF_PLACE);
+
+    //Generate kTheta
+    for(KT.first(); KT.test(); KT.next())
+    {
+        //Calculate k-vector magnitude
+        kSqu = 0.0;
+        for(int i=0; i<dim; i++)
+        {
+            // kSqu += pow( sin( constants::pi * double(KT.coord(i)) / sim->numpts ), 2.0 );
+            kSqu += pow( sin( M_PI * double(KT.coord(i)) / sim_->numpts ), 2.0 );
+        }
+        kSqu *= pow( Real(2) / dx, 2 );
+
+
+        //Calculate theta in Fourier space with Aj spectrum params[2] x k^param[3] / volume)
+        //(Note Re and Im varaiance is half of power spectrum)
+        //(Note theta is dx*charge*A)
+        std = dx*q * sqrt( 0.5 * params[2] * pow( sqrt(kSqu), params[3]) / pow(dx*sim_->numpts, Real(dim)) );
+
+        //Generate field in Fourier space
+        for(int i=0; i<dim; i++)
+        {
+            if(kSqu==Real(0))
+            {
+                kTheta(KT,i) = Imag(0,0);
+            }
+            else
+            {
+                kTheta(KT,i) = Imag( randGen.generateN(), randGen.generateN() ) * std;
+            }
+        }
+    }
+    COUT<<"k-space theta generated"<<endl;
+
+
+    //Inverse FFT to real space
+    planTheta.execute(FFT_BACKWARD);
+    COUT<<"Initial theta (GRT) generated"<<endl;
+
+
+    //Give epsilon its memory back (dealloc kTheta)
+    kTheta.dealloc();
+    epsilon.alloc();
+
+    //Generate epsilon site-by-site
+    for( x.first(); x.test(); x.next() )
+    {
+        for(int i=0; i<dim; i++)
+        {
+            epsilon(x,i) = Real(0);
+        }
+    }
+    COUT<<"Initial epsilon (zero) generated"<<endl;
+
+    /////////////////////////////////////////////
+    ///////////  Generate Phi and Pi  ///////////
+    /////////////////////////////////////////////
+
+
+    //pi.dealloc();
+
+    Lattice kLattice;
+    kLattice.initializeComplexFFT(*lat_,1); //kPhi have 0 halo
+    Field<Imag> kPhi;
+    kPhi.initialize(kLattice,1);
+    cKSite KP(kLattice);
+
+
+// 
+//     PlanFFT<Imag> planPhi;
+//     planPhi.initialize(&phi,&kPhi,FFT_IN_PLACE);
+//
+//
+//
+//     // constant = pow(params[1],Real(2))*pow(2.0* M_PI, 1.5 )*pow(params[4],Real(3)) / ((long)N*(long)N*(long)N*dx*dx*dx);
+//     constant = pow(params[1],Real(2))*pow(2.0* M_PI, 1.5 )*pow(params[4],Real(3)) / ((long)sim_->numpts*(long)sim_->numpts*(long)sim_->numpts*dx*dx*dx);
+//
+//     COUT<< "the constant is" << constant << endl;
+//
+//     for(KP.first(); KP.test(); KP.next())
+//     {
+//         //Calculate k-vector (lattice) magnitude
+//         kSqu = 0.0;
+//         for(int i=0; i<dim; i++)
+//         {
+//             kSqu += pow( sin( M_PI * double(KP.coord(i)) / sim_->numpts ), 2.0 );
+//         }
+//         kSqu *= pow( Real(2) / dx, Real(2) );
+//
+//         //Calculate phi in Fourier space with correlation function in real space
+//         //C(y) = C_0 * exp( -y^2/2cl^2) which is approximately causal
+//         //eg. if cl=0.5t then "2-sigma" limit is the causal horizon
+//         //(Note Re and Im varaiance is half of power spectrum)
+//         if(kSqu > Real(0))
+//         {
+//             std = sqrt ( 0.5*constant*exp( double (-0.5*kSqu*params[4]*params[4]) ) );
+//         }
+//         else
+//         {
+//             std = Real(0);
+//         }
+//
+//         //Generate field in Fourier space
+//         if(kSqu==Real(0))
+//         {
+//             kPhi(KP) = Imag(0,0);
+//         }
+//         else
+//         {
+//             kPhi(KP) = Imag( randGen.generateN(), randGen.generateN() ) * std;
+//         }
+//
+//
+//
+// 	//kPhi(KP) = Imag(0.001,0.001);
+//     }
+//     COUT<<"k-space phi generated (for correlation length="<<params[4]<<")"<<endl;
+//
+//     //Inverse FFT to real space
+//     planPhi.execute(FFT_BACKWARD);
+//     COUT<<"Initial phi (GRT) generated"<<endl;
+//
+//     //calculate mean RMS |phi| to display
+//     //Normalization is already such that y(x)=V int (dk/2pi)^3 Y(k) exp(i k.x)
+//     //since dk = 2pi/(Ndx) and so V(dk/2pi)^3 = 1 and is direct FFT sum
+//     sumModPhiSqu = 0.0;
+//     for( x.first(); x.test(); x.next() )
+//     {
+//         sumModPhiSqu += phi(x).norm();
+//     }
+//     parallel.sum(sumModPhiSqu);
+//     COUT<<"Initial phi copied to field with halo"<<endl;
+//
+//     // COUT<<"RMS |phi| = "<<sqrt(sumModPhiSqu/lattice.sites())<<endl;
+//     COUT<<"RMS |phi| = "<<sqrt(sumModPhiSqu/ lat_->sites())<<endl;
+//
+//
+//     //Give pi its memory back
+//     //kPhi.dealloc();
+//     pi.alloc();
+//
+//     //Generate pi site-by-site
+//     for( x.first(); x.test(); x.next() )
+//     {
+//         pi(x) = Imag(0,0);
+//     }
+//     COUT<<"Initial pi (zero) generated"<<endl;
+//
+//     //Update halos
+//     phi.updateHalo();
+//     //pi.updateHalo(); //No halo update required as never referenced off-site
+//     theta.updateHalo();
+//     //epsilon.updateHalo(); //No halo update required as never referenced off-site
+//
+//
+// Imag phisum_ = Imag(0,0);
+// Imag pisum_ = Imag(0,0);
+// Imag thetasum_ = Imag(0,0);
+// Imag epsilonsum_ = Imag(0,0);
+//
+// for(x.first();x.test();x.next())
+// {
+//   phisum_ += phi(x, 0);
+//   pisum_ += pi(x, 0);
+//   thetasum_ += theta(x, 0)+theta(x, 1)+theta(x, 2);
+//   epsilonsum_ += epsilon(x, 0)+epsilon(x, 1)+epsilon(x, 2);
+// }
+// parallel.sum(phisum_);
+// parallel.sum(pisum_);
+// parallel.sum(thetasum_);
+// parallel.sum(epsilonsum_);
+//
+// COUT << "average phi: " << phisum_ << endl;
+// COUT << "average pi: "<<  pisum_ << endl;
+// COUT << "average theta: "<<  thetasum_ << endl;
+// COUT << "average epsilon: "<<  epsilonsum_ << endl;
+//
+//
+//
+
+
+
+
+
+
+
+
+
+
+
+  //
+  //   /*
+  //
+  //
+  // //Deallocate memory in pi (to borrow for kPhi and therefore xPhi)
+  // //(kPhi is smaller than pi because pi has a halo)
+  // pi.dealloc();
+  //
+  // //Initialize and alloc xPhi
+  // xPhi.initialize(xLattice);
+  // xPhi.alloc();
+  //
+  // //Generate xPhi (= kPhi)
+  // constant = pow(params[1],Real(2))*pow(2.0* constants::pi, 1.5 )*pow(params[4],Real(3)) / (N*N*N*dx*dx*dx);
+  // for(X.first(); X.test(); X.next())
+  // {
+  //   //Calculate k-vector (lattice) magnitude
+  //   kSqu = 0.0;
+  //   for(int i=0; i<dim; i++)
+  //   {
+  //     kSqu += pow( sin( constants::pi * double(X.coord(i)) / N ), 2.0 );
+  //   }
+  //   kSqu *= pow( Real(2) / dx, Real(2) );
+  //
+  //   //Calculate phi in Fourier space with correlation function in real space
+  //   //C(y) = C_0 * exp( -y^2/2cl^2) which is approximately causal
+  //   //eg. if cl=0.5t then "2-sigma" limit is the causal horizon
+  //   //(Note Re and Im varaiance is half of power spectrum)
+  //   if(kSqu > Real(0))
+  //   {
+  //     std = sqrt ( 0.5*constant*exp( double (-0.5*kSqu*params[4]*params[4]) ) );
+  //   }
+  //   else
+  //   {
+  //     std = Real(0);
+  //   }
+  //
+  //   //Generate field in Fourier space
+  //   if(kSqu==Real(0))
+  //   {
+  //     xPhi(X) = Imag(0,0);
+  //   }
+  //   else
+  //   {
+  //     xPhi(X) = Imag( randGen.generateN(), randGen.generateN() ) * std;
+  //   }
+  //
+  //
+  //   te
+  //
+  // }
+  // COUT<<"k-space phi generated (for correlation length="<<params[4]<<")"<<endl;
+  //
+  // //Inverse FFT to real space
+  // FFT(xPhi, +1);
+  // COUT<<"Initial phi (GRT) generated"<<endl;
+  //
+  // //Copy xPhi to phi and calculate mean RMS |phi| to display
+  // //Normalization is already such that y(x)=V int (dk/2pi)^3 Y(k) exp(i k.x)
+  // //since dk = 2pi/(Ndx) and so V(dk/2pi)^3 = 1 and is direct FFT sum
+  // sumModPhiSqu = 0.0;
+  // for( x.first(), X.first(); x.test(); x.next(), X.next() )
+  // {
+  //   phi(x) = xPhi(X);
+  //   sumModPhiSqu += phi(x).norm();
+  // }
+  // parallel.sum(sumModPhiSqu);
+  // COUT<<"Initial phi copied to field with halo"<<endl;
+  // COUT<<"RMS |phi| = "<<sqrt(sumModPhiSqu/lattice.sites())<<endl;
+  //
+  // //Give pi its memory back
+  // xPhi.dealloc();
+  // pi.alloc();
+  //
+  // //Generate pi site-by-site
+  // for( x.first(); x.test(); x.next() )
+  // {
+  //   pi(x) = Imag(0,0);
+  // }
+  // COUT<<"Initial pi (zero) generated"<<endl;
+  //
+  // //Update halos
+  // phi.updateHalo();
+  // //pi.updateHalo(); //No halo update required as never referenced off-site
+  // theta.updateHalo();
+  // //epsilon.updateHalo(); //No halo update required as never referenced off-site
+  //
+  // */
+  }
 
 
 //==================================
@@ -400,6 +777,8 @@ void LocalDefect::evolve(double tau, double dt_, double a, int timeStep_)
 //
 
 
+
+
 void LocalDefect::start()
 {
 
@@ -452,7 +831,7 @@ void LocalDefect::start()
 // }
 
 
-void LocalDefect::nextCosmology(double a,double tau_, double dtau)
+void LocalDefect::nextCosmology(double a_,double tau_, double dtau)
 {
 
   tau = tau_;
@@ -529,7 +908,11 @@ void LocalDefect::nextCosmology(double a,double tau_, double dtau)
     }
     else
     {
-      if(phase<4){ phase=4; COUT<<"Starting coreGrowth B phase at t="<<tau<<endl; }
+      if(phase<4){
+        phase=4; COUT<<"Starting coreGrowth B phase at t="<<tau<<endl;
+          a = a_;
+
+      }
       // if (eraBcosmologyType == 1)
       //   {	    if(eraBparams[7]==0)
   	  //   {
@@ -966,6 +1349,8 @@ void LocalDefect::emCalc()
   #endif
 
 
+//update halo, phi theta
+
   // emOndate = true;
   // parallel.barrier();
 }
@@ -1122,13 +1507,14 @@ void LocalDefect::emConservationCommon()
 //Output fields============================
 
 
-void defects_stat_output()
+void LocalDefect::defects_stat_output()
 {
 
-  // if( timeToDoIt(sim.timeStep,numberFieldOutputs,timeStepFields,timeStepEnd,spacingFieldOutputs) && sim.timeStep2==0) // Old version saved fields 1 timestep different. MBH
-  // 	{
-  //
-  //   }
+  if( timeToDoIt(timeStep,defects_sim_->numberFieldOutputs,timeStepFields,timeStepEnd,defects_sim_->spacingFieldOutputs) && timeStep2==0) // Old version saved fields 1 timestep different. MBH
+  	{
+        COUT<<"Writing fields at                      timestep: "<<timeStep<<" time: "<<tau<<endl;
+        // saveFields( pathFields,runID + "_" + int2string(sim.timeStep,99999)+ FILETYPE );
+    }
 
 }
 
@@ -1193,6 +1579,64 @@ int LocalDefect::roundNearest(double input)
   double f=floor(input);
   if(input-f<0.5) { return int(f); }
   else { return int(f)+1; }
+}
+
+
+void LocalDefect::saveFields(string preString, string postString)
+{
+// #ifdef SAVE_FIELD_DERIV
+// // main function .....
+//     string  filename1=preString+"fieldPhi"+postString;
+//     string  filename2=preString+"fieldFijFij"+postString;
+//     string  filename3=preString+"fieldEnergyDensity"+postString;
+//     string  filename4=preString+"fieldPi_norm"+postString;
+//     string  filename5=preString+"fieldE_Norm"+postString;
+//     string  filename6=preString+"fieldDiDi"+postString;
+//     string  filename7=preString+"fieldVPhi"+postString;
+//
+//
+//
+//     // Site x(lattice);
+//     // Site X(latTempField);
+//
+//     Site x(*lat_);
+//
+//     Real   aaL;
+//     Real   T00;
+//     Imag*  D;
+//     Real** F;
+//     Real   EiEi;
+//     Real   FijFij;
+//     Real   DiDi;
+//
+//     //Allocate memory
+//     //(for Fij, only j>i is allocated, so reference as F[i][j-i-1])
+//     D = new Imag[dim];
+//     F = new Real*[dim];
+//     for(int i=0; i<dim; i++) { F[i] = new Real[dim]; }
+//
+//     //Calculate constants
+//     Real aaqdx = a*a * q * dx;
+//     Real aaqqdxdx = a*a * q*q * dx*dx;
+// 	Real aaqqdxdxdxdx = dx*dx*aaqqdxdx;
+// 	Real E2const = a*a * q*q * dx*dx;
+// 	Real B2const = a*a * q*q * dx*dx*dx*dx;
+//
+//     Real aa4 = a*a * Real(4);
+//     Real qdxdx = q * dx*dx;
+//     Real aal_4 = a*a * lambda / Real(4);
+//     Real ss = sigma*sigma;
+//
+// //first save field that already exist
+//
+//     if(saveField1)
+//     {
+// 	#ifndef WITHOUT_HDF5
+// 	phi.saveHDF5(filename1.c_str());
+// 	#else
+// 	phi.write(filename1);
+// 	#endif
+//     }
 }
 
 

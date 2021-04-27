@@ -1806,6 +1806,8 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	defects_sim.dissipation = 0;
 	defects_sim.defect_flag = DEFECT_NONE;
 	defects_sim.num_defect_output = MAX_OUTPUTS;
+	char spacingFieldOutputs[PARAM_MAX_LENGTH];
+
 
 	if (parseParameter(params, numparam, "defects", par_string))
 	{
@@ -1922,9 +1924,10 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	#endif
 		}
 
-		parseParameter(params, numparam, "local_defect_statistics_redshifts", defects_sim.z_local_defects, defects_sim.num_local_defect_output);
+		parseParameter(params, numparam, "localDefectStat redshifts", defects_sim.z_local_defects, defects_sim.num_local_defect_output);
 
-			COUT << " Number of outputs are = " << defects_sim.num_local_defect_output  << ". They are: " << defects_sim.z_local_defects << endl;
+		// COUT << " Number of outputs are = " << defects_sim.num_local_defect_output  << ". They are: " << defects_sim.z_local_defects << endl;
+		// 	COUT << " Number of outputs are = " << defects_sim.num_local_defect_output  << endl;
 
 			if (defects_sim.num_local_defect_output > 0)
 				qsort((void *) defects_sim.z_local_defects, (size_t) defects_sim.num_local_defect_output, sizeof(double), sort_descending);
@@ -1941,6 +1944,89 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 			    parallel.abortForce();
 	    #endif
 		    }
+
+				parseParameter(params, numparam, "numberFieldOutputs", defects_sim.numberFieldOutputs);
+		    if (defects_sim.numberEMconsOutputs < 0)
+		    {
+			    COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": numberFieldOutputs in local defects not set properly!" << endl;
+	    #ifdef LATFIELD2_HPP
+			    parallel.abortForce();
+	    #endif
+		    }
+
+			// 	parseParameter(params, numparam, "spacingFieldOutputs", defects_sim.spacingFieldOutputs);
+		  //   if (defects_sim.numberEMconsOutputs < 0)
+		  //   {
+			//     COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": spacingFieldOutputs in local defects not set properly!" << endl;
+	    // #ifdef LATFIELD2_HPP
+			//     parallel.abortForce();
+	    // #endif
+		  //   }
+
+
+				if (parseParameter(params, numparam, "spacingFieldOutputs", spacingFieldOutputs))
+				{
+
+					if (spacingFieldOutputs == "linear")
+					{
+						defects_sim.spacingFieldOutputs = "linear";
+						COUT << endl << COLORTEXT_BLUE << "spacingFieldOutputsg set to: linear" << COLORTEXT_RESET << endl;
+					}
+					else if (spacingFieldOutputs == "log")
+					{
+						defects_sim.spacingFieldOutputs = "log";
+						COUT << endl << COLORTEXT_BLUE << "spacingFieldOutputsg set to: log" << COLORTEXT_RESET << endl;
+					}
+					else
+					{
+						COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET << ": setting chosen for spacingFieldOutputsg option not recognized, using default linear" << endl;
+						defects_sim.spacingFieldOutputs = "linear";
+
+					}
+				}
+				else
+				{
+				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": setting chosen for spacingFieldOutputsg option not set properly!" << endl;
+			#ifdef LATFIELD2_HPP
+				    parallel.abortForce();
+			#endif
+				}
+
+				parseParameter(params, numparam, "tFields", defects_sim.tFields);
+		    if (defects_sim.tFields < 0)
+		    {
+			    COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": numberFieldOutputs in local defects not set properly!" << endl;
+	    #ifdef LATFIELD2_HPP
+			    parallel.abortForce();
+	    #endif
+		    }
+
+				if(parseParameter(params, numparam, "initialConditionsType", defects_sim.initialConditionsType))
+				{
+		    if (defects_sim.numberEMconsOutputs < -2)
+		    {
+			    COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": numberFieldOutputs in local defects not set properly!" << endl;
+	    #ifdef LATFIELD2_HPP
+			    parallel.abortForce();
+	    #endif
+		    }
+
+				if( defects_sim.initialConditionsType == 4 )
+    			{
+      defects_sim.initialConditionsParams=new double[5];
+      // initialConditionsParams[0]=0;
+      // initialConditionsParams[1]=1;
+      // initialConditionsParams[2]=1;
+      // initialConditionsParams[3]=0;
+      // initialConditionsParams[4]=1;
+			parseParameter(params, numparam, "initialSeed", defects_sim.initialConditionsParams[0]);
+			parseParameter(params, numparam, "initialModulus", defects_sim.initialConditionsParams[1]);
+			parseParameter(params, numparam, "initialGaugePower", defects_sim.initialConditionsParams[2]);
+			parseParameter(params, numparam, "initialGaugeIndex", defects_sim.initialConditionsParams[3]);
+			parseParameter(params, numparam, "initialPhiLength", defects_sim.initialConditionsParams[4]);
+
+    		}
+			}
 
 	}
 
