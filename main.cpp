@@ -66,7 +66,8 @@
 //#include "defect_base.hpp"
 #include "global_defect.hpp"
 #include "ic_defect.hpp"
-
+#include "straight_defect.hpp"
+#include <memory>
 using namespace std;
 using namespace LATfield2;
 
@@ -114,7 +115,13 @@ int main(int argc, char **argv)
 	defects_metadata defects_sim;
 	DefectBase *defects; 
 	GlobalDefect defects_; 
-    defects = &defects_; 
+	defects = &defects_; 
+	DefectBase *straight_defects; 
+	StraightDefect straight_;
+	straight_defects = &straight_;
+	//std::shared_ptr<DefectBase> defects;
+	//defects = std::make_shared<GlobalDefect>();
+	//defects = std::make_shared<StraightDefect>();
 	double T00hom;
 	
 
@@ -193,7 +200,7 @@ int main(int argc, char **argv)
 
 	usedparams = parseMetadata(params, numparam, sim, cosmo, ic);
 
-    COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
+	COUT << " parsing of settings file completed. " << numparam << " parameters found, " << usedparams << " were used." << endl;
 	/***
 	Here the parameters are read...
 	somethibng like:
@@ -202,15 +209,12 @@ int main(int argc, char **argv)
 	***/
 	
 
-    if(!defects_sim.defect_flag)
-    {
-	    usedparams = parseDefectMetadata(params, numparam, defects_sim);
-
+	if(!defects_sim.defect_flag)
+	{
+		usedparams = parseDefectMetadata(params, numparam, defects_sim, sim);
 
 		COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 	}
-
-
 
 	sprintf(filename, "%s%s_settings_used.ini", sim.output_path, sim.basename_generic);
 	saveParameterFile(filename, params, numparam);
@@ -311,6 +315,7 @@ int main(int argc, char **argv)
 	parallel.min(sim.movelimit);
 
 	fourpiG = 1.5 * sim.boxsize * sim.boxsize / C_SPEED_OF_LIGHT / C_SPEED_OF_LIGHT;
+	COUT << "The val of 4iG == " << fourpiG << " " << endl;
 	a = 1. / (1. + sim.z_in);
 	tau = particleHorizon(a, fourpiG, cosmo);
 
@@ -321,26 +326,30 @@ int main(int argc, char **argv)
 
 	dtau_old = 0.;
 
-    /***
+	/***
 
-    here put the initialization of the strings.... need to be thought a bit....
+	here put the initialization of the strings.... need to be thought a bit....
 
-    maybe better to put it in "generateIC_basic_strings"
+	maybe better to put it in "generateIC_basic_strings"
 
-    ***/
+	***/
 
-    /***
-    Add the defect class here and initialise
-    ***/
+	/***
+	Add the defect class here and initialise
+	***/
 
 
-    if(defects_sim.defect_flag == DEFECT_GLOBAL)
-    {
-        defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
-        generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename);
-    }
+	if(defects_sim.defect_flag == DEFECT_GLOBAL)
+	{
+		defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+		generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename, "fieldPhi_test_t10.h5", "fieldPi_test_t10.h5");
+	}
+	else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+	{
+		straight_defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
+	}
 
-    
+
 	if (ic.generator == ICGEN_BASIC)
 		generateIC_basic(sim, ic, cosmo, fourpiG, &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi, &plan_source, &plan_Sij, params, numparam); // generates ICs on the fly
 	else if (ic.generator == ICGEN_READ_FROM_DISK)
@@ -486,7 +495,19 @@ Start of the main loop:
 			for(x.first(); x.test(); x.next())
 			{
 //				COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
-				source(x) -= a * a * a * defects_.Tuv_defect_(x ,0 ,0 ) ; //defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
+				source(x) -= a * a * a * defects_.Tuv_defect_(x ,0 ,0 ) ; 
+				//defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
+//				COUT << " Source (x) = " << source(x) << endl << endl;
+			}
+		}
+		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+		{
+			for(x.first(); x.test(); x.next())
+			{
+//				COUT << " T00 from stright string is added !" << endl;
+//				source(x) -= straight_.Tuv_defect_(x ,0 ,0 ) ;
+				source(x) -= a * a * a * straight_.Tuv_defect_(x ,0 ,0 ) ; 
+//				defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
 //				COUT << " Source (x) = " << source(x) << endl << endl;
 			}
 		}
@@ -495,10 +516,10 @@ Start of the main loop:
 		if ((sim.out_pk & MASK_VEL) || (sim.out_snapshot & MASK_VEL))
 		{
 			projection_init(&Bi);
-            projection_Ti0_project(&pcls_cdm, &Bi, &phi, &chi);
-            vertexProjectionCIC_comm(&Bi);
-            compute_vi_rescaled(cosmo, &vi, &source, &Bi, a, a_old);
-            a_old = a;
+			projection_Ti0_project(&pcls_cdm, &Bi, &phi, &chi);
+			vertexProjectionCIC_comm(&Bi);
+			compute_vi_rescaled(cosmo, &vi, &source, &Bi, a, a_old);
+			a_old = a;
 		}
 #endif
 
@@ -526,9 +547,19 @@ Start of the main loop:
 			if(defects_sim.defect_flag == DEFECT_GLOBAL)
 			{
 				for(x.first(); x.test(); x.next()) 
-		    	{
+				{
 					for(int i = 0;i<3;i++)
 						Bi(x, i) +=  a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 );
+						// sim.boxsize / sim.boxsize / sim.boxsize
+				}
+			}
+			else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+			{
+				for(x.first(); x.test(); x.next()) 
+				{
+					for(int i = 0;i<3;i++)
+//						Bi(x, i) += straight_.Tuv_defect_(x ,i+1 ,0 );
+						Bi(x, i) +=  a * a * a * a * straight_.Tuv_defect_(x ,i+1 ,0 );
 						// sim.boxsize / sim.boxsize / sim.boxsize
 				}
 			}
@@ -563,6 +594,21 @@ Start of the main loop:
 					for(j=1;j<i;j++)
 					{
 							Sij(x, i-1, j-1) += a * a * a * defects_.Tuv_defect_(x ,i ,j);
+							// / sim.boxsize / sim.boxsize / sim.boxsize
+					}	
+				}
+			}
+		}
+		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+		{
+			for(x.first(); x.test(); x.next())
+			{
+				for(int i=1;i<4;i++)
+				{
+					for(j=1;j<i;j++)
+					{
+//							Sij(x, i-1, j-1) += straight_.Tuv_defect_(x ,i ,j);
+							Sij(x, i-1, j-1) += a * a * a * straight_.Tuv_defect_(x ,i ,j);
 							// / sim.boxsize / sim.boxsize / sim.boxsize
 					}	
 				}
@@ -770,11 +816,19 @@ Compute phi
 			Writing the snapshots for the defects
 			****/
 
-            if(defects_sim.defect_flag)
-            {
-            	COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
-            	defects->writedefectSnapshots(h5filename, snapcount);
-            }
+			if(defects_sim.defect_flag == DEFECT_GLOBAL)
+			{
+				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+				defects->writedefectSnapshots(h5filename, snapcount);
+//				defects->write_Tuv_defect(h5filename,snapcount);
+//				test_global_defect(h5filename, snapcount, z, dtau, tau);
+			}
+			else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+			{
+//				COUT << COLORTEXT_CYAN << " writing snapshot for straight defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+//				straight_defects->write_Tuv_defect(h5filename,snapcount);
+				straight_.write_straight_defect_position(h5filename,snapcount, (1/a) - 1, dtau, tau);
+			}
 
 			snapcount++;
 		}
@@ -809,16 +863,31 @@ Compute phi
 		/***
 		add output of strings...
 		***/
-		
-		if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
-		{	
-			COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
-			
-			COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
-            
-            defects->defects_stat_output();
-			zdefectscount++;
+		if(defects_sim.defect_flag == DEFECT_GLOBAL)
+		{
+			if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
+			{	
+				COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
+				
+				COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+				defects->defects_stat_output();
+
+				defects->write_Tuv_defect(h5filename,zdefectscount);
+				defects_.test_global_defect(h5filename, zdefectscount, (1/a) - 1, dtau, tau);
+
+				zdefectscount++;
+			}
 		}
+		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+			{
+				
+				if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
+				{
+					COUT << COLORTEXT_CYAN << " writing snapshot for straight defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+					straight_defects->write_Tuv_defect(h5filename,zdefectscount);
+					zdefectscount++;
+				}
+			}
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
 		tmp = a;
@@ -867,15 +936,21 @@ Compute phi
 				numsteps_ncdm[i] = (int) ceil(dtau * maxvel[i+1+sim.baryon_flag] / dx / sim.movelimit);
 			else numsteps_ncdm[i] = 1;
 		}
-        // numsteps for defect
-        
-        if(defects_sim.defect_flag == DEFECT_GLOBAL)
-        {
-            if (0.2 * dtau * C_SPEED_OF_LIGHT > dx * sim.movelimit)
-			    numsteps_defect = (int) ceil(0.2 * dtau * C_SPEED_OF_LIGHT / dx / sim.movelimit );
-		    else numsteps_defect = 1;
+
+		// numsteps for defect
+		if(defects_sim.defect_flag == DEFECT_GLOBAL)
+		{
+			if (0.2 * dtau * C_SPEED_OF_LIGHT > dx * sim.movelimit)
+				numsteps_defect = (int) ceil(0.2 * dtau * C_SPEED_OF_LIGHT / dx / sim.movelimit );
+			else numsteps_defect = 1;
 		}
-		
+		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+		{
+			if (0.33 * dtau > dx * sim.movelimit)
+				numsteps_defect = (int) ceil(0.33 * dtau/ dx / sim.movelimit );
+			else numsteps_defect = 1;
+		}
+
 		if (cycle % CYCLE_INFO_INTERVAL == 0)
 		{
 			COUT << " cycle " << cycle << ", time integration information: max |v| = " << maxvel[0] << " (cdm Courant factor = " << maxvel[0] * dtau / dx;
@@ -898,15 +973,15 @@ Compute phi
 					COUT << ", ";
 				}
 			}
-            COUT << endl;
-            
-            // TO DO 
-            // output numsteps of the defects
-            
-            if(defects_sim.defect_flag == DEFECT_GLOBAL)
-            {
-                COUT<< " time step subdivision for defect: "<<numsteps_defect<< " dtau is: "<<dtau<<" dx is: "<<dx<<endl;
-            }
+			COUT << endl;
+
+			// TO DO 
+			// output numsteps of the defects
+
+			if(defects_sim.defect_flag == DEFECT_GLOBAL)
+			{
+				COUT<< " time step subdivision for defect: "<<numsteps_defect<< " dtau is: "<<dtau<<" dx is: "<<dx<<endl;
+			}
 		}
 
 #ifdef BENCHMARK
@@ -964,29 +1039,42 @@ Compute phi
 		***/
 
 
-        if(defects_sim.defect_flag == DEFECT_GLOBAL)
-        {
-            double vari = Hconf(a, fourpiG, cosmo);
-    		tmp = a;
-            double DT = dtau / numsteps_defect;
-		    for (j = 0; j < numsteps_defect; j++)
-		    {
-		        defects->update_phi(&DT);
-		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
-		        defects->update_pi(&DT,&tmp,&vari);
-		        rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
-		    }
-		    defects->compute_Tuv_defect(a);
-		    double averagephi = defects_.averagephi();
-		    double averagerho = defects_.averagerhodefect();
-            ofstream phifile;
-		    if(parallel.rank() == 0)
-		    {
-			    phifile.open (h5filename + "average_rho_phi_defect.txt",std::ios_base::app);
-			    phifile << tmp << " " << (1/tmp) - 1 << " " << tmp << " " << vari << " " << averagephi << " " << averagerho << endl;
-			    phifile.close();
-		    }
-        }
+		if(defects_sim.defect_flag == DEFECT_GLOBAL)
+		{
+			double vari = Hconf(a, fourpiG, cosmo);
+			tmp = a;
+			double DT = dtau / numsteps_defect;
+			for (j = 0; j < numsteps_defect; j++)
+			{
+				defects->update_phi(&DT);
+				rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
+				defects->update_pi(&DT,&tmp,&vari);
+				rungekutta4bg(tmp, fourpiG, cosmo, DT/2.0);
+			}
+			defects->compute_Tuv_defect(a);
+			
+			double averagephi = defects_.averagephi();
+			double averagerho = defects_.averagerhodefect();
+			ofstream phifile;
+			if(parallel.rank() == 0)
+			{
+				phifile.open (h5filename + "average_rho_phi_defect.txt",std::ios_base::app);
+				phifile << tmp << " " << (1/tmp) - 1 << " " << tmp << " " << vari << " " << averagephi << " " << averagerho << endl;
+				phifile.close();
+			}
+		}
+		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
+		{
+			double vari = Hconf(a, fourpiG, cosmo);
+			tmp = a;
+			double DT = dtau / numsteps_defect;
+			for (j = 0; j < numsteps_defect; j++)
+			{
+				straight_defects->update_phi(&DT);
+				rungekutta4bg(tmp, fourpiG, cosmo, DT);
+			}
+			straight_defects->compute_Tuv_defect(a);
+		}
 
 
 		// cdm and baryon particle update
