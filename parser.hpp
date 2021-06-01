@@ -1728,7 +1728,7 @@ int parseMetadata(parameter * & params, const int numparam, metadata & sim, cosm
 	cosmo.Omega_m = cosmo.Omega_cdm + cosmo.Omega_b;
 	for (i = 0; i < cosmo.num_ncdm; i++) cosmo.Omega_m += cosmo.Omega_ncdm[i];
 	
-	if (cosmo.Omega_m < 0. || cosmo.Omega_m > 1.)
+	if (cosmo.Omega_m <= 0. || cosmo.Omega_m > 1.)
 	{
 		COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": total matter density out of range!" << endl;
 #ifdef LATFIELD2_HPP
@@ -1806,6 +1806,8 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	defects_sim.dissipation = 0;
 	defects_sim.defect_flag = DEFECT_NONE;
 	defects_sim.num_defect_output = MAX_OUTPUTS;
+	defects_sim.phifile[0] = '\0';
+	defects_sim.pifile[0] = '\0';
 	
 	if (parseParameter(params, numparam, "defects", par_string))
 	{
@@ -1841,6 +1843,94 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	{
 		COUT << "Parsing Global Defects parameters"<<endl<<endl;
 		
+		if (parseParameter(params, numparam, "defect ic", par_string))
+		{
+			if (par_string[0] == 'P' || par_string[0] == 'p')
+				defects_sim.defect_ic = DEFECT_IC_PREVOLUTION;
+			else if (par_string[0] == 'R' || par_string[0] == 'r')
+				defects_sim.defect_ic = DEFECT_IC_READ_FROM_FILE;
+			else
+			{
+				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": Defect IC generator not recognized!" << endl;
+	#ifdef LATFIELD2_HPP
+				parallel.abortForce();
+	#endif
+			}
+		}
+	// parsing the defect IC params
+		if(defects_sim.defect_ic == DEFECT_IC_READ_FROM_FILE)
+		{
+			COUT << "Defect IC set to read from file" << endl;
+			parseParameter(params, numparam, "field file", defects_sim.phifile);
+			parseParameter(params, numparam, "field_velocity file", defects_sim.pifile);
+			if(!parseParameter(params, numparam, "field file", defects_sim.phifile) || !parseParameter(params, numparam, "field_velocity file", defects_sim.pifile))
+			{
+				COUT << "The file names are not set properly!" << endl;
+	#ifdef LATFIELD2_HPP
+				parallel.abortForce();
+	#endif
+			}
+		}
+		else if(defects_sim.defect_ic == DEFECT_IC_PREVOLUTION)
+		{
+			COUT << "Defect IC set to prevolution" << endl;
+			
+			parseParameter(params, numparam, "defectprevolution redshift", defects_sim.z_ic_defects);
+			if (defects_sim.z_ic_defects <= 0 || !isfinite(defects_sim.z_ic_defects) )
+			{
+					COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the start of defect prevolution redshift not set properly!" << endl;
+		#ifdef LATFIELD2_HPP
+					parallel.abortForce();
+		#endif
+			}
+			else
+				COUT<< "The global defect prevolution redshift is:"<< COLORTEXT_BLUE << defects_sim.z_ic_defects << COLORTEXT_RESET << endl;
+
+			parseParameter(params, numparam, "friction_coeff", defects_sim.friction_coeff);
+			if (defects_sim.friction_coeff < 0 || !isfinite(defects_sim.friction_coeff))
+			{
+				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the friction coefficient for the scalar field in global defects not set properly!" << endl;
+		#ifdef LATFIELD2_HPP
+				parallel.abortForce();
+		#endif
+			}
+
+			if (parseParameter(params, numparam, "dissipation", par_string))
+			{
+				if (par_string[0] == 'Y' || par_string[0] == 'y')
+					defects_sim.dissipation |= DISSIPATION_FLAG ;
+				else if (par_string[0] != 'N' && par_string[0] != 'n')
+					COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET << ": setting chosen for dissipation needed option not recognized, using default (no)" << endl;
+			}
+			else
+			{
+				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the dissipation flag for the global defects is not set properly!" << endl;
+		#ifdef LATFIELD2_HPP
+				parallel.abortForce();
+		#endif
+			}
+			
+			parseParameter(params, numparam, "dissipation_end", defects_sim.diss_end);
+			if (defects_sim.dissipation)
+			{
+				if (defects_sim.diss_end <= 0 || !isfinite(defects_sim.diss_end))
+				{
+					COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the end of dissipation time for the global defects not set properly!" << endl;
+		#ifdef LATFIELD2_HPP
+					parallel.abortForce();
+		#endif
+				}
+				else
+				{
+				COUT << "The dissipation option is set as true for global defect"<<endl<<" the end of dissipation is at = "<< defects_sim.diss_end<<endl<<" the friction coefficient is = " << COLORTEXT_BLUE << defects_sim.friction_coeff << COLORTEXT_RESET << endl;
+				}
+			}
+			else
+			{
+				COUT<< " The dissipation option is set as false."<<endl<<endl;
+			}
+		}
+
 		parseParameter(params, numparam, "nComponents", defects_sim.nComponents);
 		if (defects_sim.nComponents < 1 || !isfinite(defects_sim.nComponents))
 		{
@@ -1859,8 +1949,8 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	#endif
 		}
 		
-		parseParameter(params, numparam, "lambda", defects_sim.lambda);
-		if (defects_sim.lambda <= 0 || !isfinite(defects_sim.lambda))
+		parseParameter(params, numparam, "lambda0", defects_sim.lambda0);
+		if (defects_sim.lambda0 <= 0 || !isfinite(defects_sim.lambda0))
 		{
 			COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the lambda for the scalar field in global defects not set properly!" << endl;
 	#ifdef LATFIELD2_HPP
@@ -1868,66 +1958,11 @@ int parseDefectMetadata(parameter * & params, const int numparam, defects_metada
 	#endif
 		}
 		
-		parseParameter(params, numparam, "friction_coeff", defects_sim.friction_coeff);
-		if (defects_sim.friction_coeff < 0 || !isfinite(defects_sim.friction_coeff))
-		{
-			COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the friction coefficient for the scalar field in global defects not set properly!" << endl;
-	#ifdef LATFIELD2_HPP
-			parallel.abortForce();
-	#endif
-		}
-
-		if (parseParameter(params, numparam, "dissipation", par_string))
-		{
-			if (par_string[0] == 'Y' || par_string[0] == 'y')
-				defects_sim.dissipation |= DISSIPATION_FLAG ;
-			else if (par_string[0] != 'N' && par_string[0] != 'n')
-				COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET << ": setting chosen for dissipation needed option not recognized, using default (no)" << endl;
-		}
-		else
-		{
-			COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the dissipation flag for the global defects is not set properly!" << endl;
-	#ifdef LATFIELD2_HPP
-			parallel.abortForce();
-	#endif
-		}
-		
-		parseParameter(params, numparam, "dissipation_end", defects_sim.diss_end);
-		if (defects_sim.dissipation)
-		{
-			if (defects_sim.diss_end <= 0 || !isfinite(defects_sim.diss_end))
-			{
-				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the end of dissipation time for the global defects not set properly!" << endl;
-	#ifdef LATFIELD2_HPP
-				parallel.abortForce();
-	#endif
-			}
-			else
-			{
-			COUT << "The dissipation option is set as true for global defect"<<endl<<" the end of dissipation is at = "<< defects_sim.diss_end<<endl<<" the friction coefficient is = " << COLORTEXT_BLUE << defects_sim.friction_coeff << COLORTEXT_RESET << endl;
-			}
-		}
-		else
-		{
-			COUT<< " The dissipation option is set as false."<<endl<<endl;
-		}
-	
 		parseParameter(params, numparam, "defects redshifts", defects_sim.z_defects, defects_sim.num_defect_output);
 		if (defects_sim.num_defect_output > 0)
 			qsort((void *) defects_sim.z_defects, (size_t) defects_sim.num_defect_output, sizeof(double), sort_descending);
 	
-		COUT<< "The global defect parameters used are:"<<" "<<"eta square = " << COLORTEXT_BLUE << defects_sim.eta2 << COLORTEXT_RESET << ", lambda = " << COLORTEXT_BLUE << defects_sim.lambda << COLORTEXT_RESET << ", number of components = " << COLORTEXT_BLUE << defects_sim.nComponents << COLORTEXT_RESET << endl << endl;
-	
-		parseParameter(params, numparam, "defectprevolution redshift", defects_sim.z_ic_defects);
-		if (defects_sim.z_ic_defects <= 0 || !isfinite(defects_sim.z_ic_defects) )
-		{
-				COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET << ": the start of defect prevolution redshift not set properly!" << endl;
-	#ifdef LATFIELD2_HPP
-				parallel.abortForce();
-	#endif
-		}
-		else
-			COUT<< "The global defect prevolution redshift is:"<< COLORTEXT_BLUE << defects_sim.z_ic_defects << COLORTEXT_RESET << endl;
+		COUT<< "The global defect parameters used are:"<<" "<<"eta square = " << COLORTEXT_BLUE << defects_sim.eta2 << COLORTEXT_RESET << ", lambda0 = " << COLORTEXT_BLUE << defects_sim.lambda0 << COLORTEXT_RESET << ", number of components = " << COLORTEXT_BLUE << defects_sim.nComponents << COLORTEXT_RESET << endl << endl;
 
 	}
 	else if (defects_sim.defect_flag == DEFECT_STRAIGHT)

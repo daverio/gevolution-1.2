@@ -48,7 +48,7 @@ public:
 	void write_Tuv_defect(string h5filename, const int snapcount);
 
 	void projectionCIC_straight_defect(double a);
-	
+	void projection_Ti0_straight_defect(double a);
 	void write_straight_defect_position(string h5filename, const int snapcount, double z, double dtau, double tau);
 };
 
@@ -72,18 +72,9 @@ void StraightDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metad
 
 	double gamma;
 	double mu;
-	double G_ = 3 * sim_->boxsize * sim_->boxsize / 8 / M_PI / C_SPEED_OF_LIGHT / C_SPEED_OF_LIGHT;
-	COUT << "G val == "<< G_ << endl;
-	double rho_ = 1.8778193360597503e-26;
-	double c_ = 1.5180643578525492e-16;
-//	mu = C_SPEED_OF_LIGHT * rho_ * 1e-6 / G_  ;
-//	mu = 1e-6 * rho_ / c_ * c_ / G_ ;
-//	mu = 0.67*0.67*0.67*1e-6 * C_SPEED_OF_LIGHT * C_SPEED_OF_LIGHT * M_PI * 8 / 3;
-//	mu = 8.867030759482962;
-//	mu = 1e-6 * sim_->boxsize * sim_->boxsize / G_;
-//	mu = 75.3154 / sim_->boxsize / sim_->boxsize;
-	mu = 75.3154;
-//	mu = 300;
+
+	mu = 75.3154 / sim_->boxsize / sim_->boxsize;
+
 	COUT << "the val of mu is: " << mu << endl;
 	gamma = 1/sqrt(1 - v*v);
 
@@ -125,7 +116,7 @@ void StraightDefect::update_phi(double *dt)
 
 void StraightDefect::compute_Tuv_defect(double a)
 {
-	/// Empting Halo
+	/// Emptying Halo
 	
 	long sizeLocalGross[3];
 	long sizeLocal[3];
@@ -230,10 +221,10 @@ void StraightDefect::projectionCIC_straight_defect(double a)
 			{
 				for (int j=0; j<=i; j++)
 				{
-					Tuv_defect_(xTuv,i,j)        = rescalPosDown[0] * rescalPosDown[1] * Tuv_straight_[i][j] / *dx_ ;
-					Tuv_defect_(xTuv+1,i,j)      = rescalPosDown[0] * rescalPos[1] * Tuv_straight_[i][j] / *dx_ ;
-					Tuv_defect_(xTuv+0,i,j)      = rescalPos[0] * rescalPosDown[1] * Tuv_straight_[i][j] / *dx_  ;
-					Tuv_defect_(xTuv+0+1,i,j)    = rescalPos[0] * rescalPos[1] * Tuv_straight_[i][j] / *dx_ ; 
+					Tuv_defect_(xTuv,i,j)        = rescalPosDown[0] * rescalPosDown[1] * Tuv_straight_[i][j] / *dx_ / a / a / *dx_;
+					Tuv_defect_(xTuv+1,i,j)      = rescalPosDown[0] * rescalPos[1] * Tuv_straight_[i][j] / *dx_ / a / a / *dx_;
+					Tuv_defect_(xTuv+0,i,j)      = rescalPos[0] * rescalPosDown[1] * Tuv_straight_[i][j] / *dx_  / a / a / *dx_;
+					Tuv_defect_(xTuv+0+1,i,j)    = rescalPos[0] * rescalPos[1] * Tuv_straight_[i][j] / *dx_ / a / a / *dx_; 
 					
 //					Tuv_defect_(xTuv+0+1+2,i,j)  = rescalPos[0] * rescalPos[1] * Tuv_straight_[i][j];
 //					Tuv_defect_(xTuv+2,i,j)      = rescalPosDown[0] * rescalPosDown[1] * Tuv_straight_[i][j];
@@ -244,6 +235,42 @@ void StraightDefect::projectionCIC_straight_defect(double a)
 		}
 	}
 
+}
+
+void StraightDefect::projection_Ti0_straight_defect(double a)
+{	
+	Site xTuv(Tuv_defect_.lattice());
+	
+    double rescalPos[3];
+    double rescalPosDown[3];
+    
+    double string_pos[2];
+    double string_ref_coord[2];
+    
+    string_pos[0] = x_;
+    string_pos[1] = y0; 
+    
+    for (int i=0; i<2; i++) string_ref_coord[i] = (string_pos[i]-fmod(string_pos[i],*dx_))/ *dx_;
+	
+	for(int i=0;i<sim_->numpts;i++)
+	{
+ 		
+		if(xTuv.setCoord(string_ref_coord[0], string_ref_coord[1], i))
+		{
+ 			for(int k =0;k<2;k++)
+		    {
+		        rescalPos[k]= (string_pos[k] - string_ref_coord[k] * *dx_) / *dx_;
+		        rescalPosDown[k]= 1.0l - rescalPos[k];
+		    }
+
+			
+			for (int m=1; m<4; m++)
+			{
+				Tuv_defect_(xTuv,m,0)        = rescalPos[1] * Tuv_straight_[m][0]  / a / a;
+				Tuv_defect_(xTuv+1,m,0)      = rescalPosDown[1] * Tuv_straight_[m][0]  / a / a ;
+			}
+		}
+	}
 }
 
 #endif

@@ -93,6 +93,10 @@
 #define VECTOR_PARABOLIC            0
 #define VECTOR_ELLIPTIC             1
 
+// Identifiers for defect IC
+#define DEFECT_IC_READ_FROM_FILE    0
+#define DEFECT_IC_PREVOLUTION       1
+
 // Physical constants
 #define C_PLANCK_LAW      4.48147e-7    // omega_g / (T_cmb [K])^4
 #define C_BOLTZMANN_CST   8.61733e-5    // Boltzmann constant [eV/K]
@@ -300,9 +304,12 @@ struct cosmology
 struct defects_metadata
 {
 	int defect_flag;
+	int defect_ic;
+	char phifile[PARAM_MAX_LENGTH];
+	char pifile[PARAM_MAX_LENGTH];
 	int nComponents;
 	double eta2;
-	double lambda;
+	double lambda0;
 	double friction_coeff;
 	int dissipation;
 	double diss_end;

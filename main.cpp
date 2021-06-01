@@ -65,7 +65,8 @@
 
 //#include "defect_base.hpp"
 #include "global_defect.hpp"
-#include "ic_defect.hpp"
+#include "ic_defect_prevolution.hpp"
+#include "ic_defect_read.hpp"
 #include "straight_defect.hpp"
 #include <memory>
 using namespace std;
@@ -342,7 +343,14 @@ int main(int argc, char **argv)
 	if(defects_sim.defect_flag == DEFECT_GLOBAL)
 	{
 		defects->initialize(&lat, &latFT, &dx, &sim, &defects_sim);
-		generateIC_defects(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename, "fieldPhi_test_t10.h5", "fieldPi_test_t10.h5");
+		if(defects_sim.defect_ic == DEFECT_IC_PREVOLUTION)
+		{
+			generateIC_defects_prevolution(cosmo, defects_sim, fourpiG, defects, defects_, defects_sim.z_ic_defects, sim.z_in, dx, h5filename);
+		}
+		else if(defects_sim.defect_ic == DEFECT_IC_READ_FROM_FILE)
+		{
+			generateIC_defects_read(defects, defects_, h5filename, defects_sim.phifile, defects_sim.pifile);
+		}
 	}
 	else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
 	{
@@ -506,7 +514,7 @@ Start of the main loop:
 			{
 //				COUT << " T00 from stright string is added !" << endl;
 //				source(x) -= straight_.Tuv_defect_(x ,0 ,0 ) ;
-				source(x) -= a * a * a * straight_.Tuv_defect_(x ,0 ,0 ) ; 
+				source(x) = -a * a * a * straight_.Tuv_defect_(x ,0 ,0 ) ; 
 //				defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
 //				COUT << " Source (x) = " << source(x) << endl << endl;
 			}
@@ -559,7 +567,7 @@ Start of the main loop:
 				{
 					for(int i = 0;i<3;i++)
 //						Bi(x, i) += straight_.Tuv_defect_(x ,i+1 ,0 );
-						Bi(x, i) +=  a * a * a * a * straight_.Tuv_defect_(x ,i+1 ,0 );
+						Bi(x, i) =  a * a * a * a * straight_.Tuv_defect_(x ,i+1 ,0 );
 						// sim.boxsize / sim.boxsize / sim.boxsize
 				}
 			}
@@ -608,7 +616,7 @@ Start of the main loop:
 					for(j=1;j<i;j++)
 					{
 //							Sij(x, i-1, j-1) += straight_.Tuv_defect_(x ,i ,j);
-							Sij(x, i-1, j-1) += a * a * a * straight_.Tuv_defect_(x ,i ,j);
+							Sij(x, i-1, j-1) = a * a * a * straight_.Tuv_defect_(x ,i ,j);
 							// / sim.boxsize / sim.boxsize / sim.boxsize
 					}	
 				}
@@ -820,8 +828,7 @@ Compute phi
 			{
 				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
 				defects->writedefectSnapshots(h5filename, snapcount);
-//				defects->write_Tuv_defect(h5filename,snapcount);
-//				test_global_defect(h5filename, snapcount, z, dtau, tau);
+				defects->write_Tuv_defect(h5filename,snapcount);
 			}
 			else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
 			{
@@ -855,11 +862,14 @@ Compute phi
 				, &vi, &viFT, &plan_vi
 #endif
 			);
+			if(defects_sim.defect_flag == DEFECT_GLOBAL)
+			{
+				COUT << COLORTEXT_BLUE << " writing powerspectra for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+				defects->compute_defect_pk_(h5filename, snapcount);
+			}
 
 			pkcount++;
 		}
-
-
 		/***
 		add output of strings...
 		***/
@@ -869,11 +879,10 @@ Compute phi
 			{	
 				COUT << " Number of outputs are = " << defects_sim.num_defect_output  << endl;
 				
-				COUT << COLORTEXT_BLUE << " writing defect output " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
+				COUT << COLORTEXT_BLUE << " Outputing defect statistics " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
 				defects->defects_stat_output();
-
-				defects->write_Tuv_defect(h5filename,zdefectscount);
-				defects_.test_global_defect(h5filename, zdefectscount, (1/a) - 1, dtau, tau);
+//				defects->write_Tuv_defect(h5filename,zdefectscount);
+//				defects_.test_global_defect(h5filename, zdefectscount, (1/a) - 1, dtau, tau);
 
 				zdefectscount++;
 			}
@@ -883,7 +892,7 @@ Compute phi
 				
 				if (zdefectscount < defects_sim.num_defect_output && 1. / a < defects_sim.z_defects[zdefectscount] + 1.)
 				{
-					COUT << COLORTEXT_CYAN << " writing snapshot for straight defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+					COUT << COLORTEXT_BLUE << " writing snapshot for straight defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
 					straight_defects->write_Tuv_defect(h5filename,zdefectscount);
 					zdefectscount++;
 				}
@@ -940,13 +949,13 @@ Compute phi
 		// numsteps for defect
 		if(defects_sim.defect_flag == DEFECT_GLOBAL)
 		{
-			if (0.2 * dtau * C_SPEED_OF_LIGHT > dx * sim.movelimit)
-				numsteps_defect = (int) ceil(0.2 * dtau * C_SPEED_OF_LIGHT / dx / sim.movelimit );
+			if (0.2 * dtau > dx * sim.movelimit)
+				numsteps_defect = (int) ceil(0.2 * dtau / dx / sim.movelimit );
 			else numsteps_defect = 1;
 		}
 		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
 		{
-			if (0.33 * dtau > dx * sim.movelimit)
+			if (0.33 * dtau > dx * 1)
 				numsteps_defect = (int) ceil(0.33 * dtau/ dx / sim.movelimit );
 			else numsteps_defect = 1;
 		}
@@ -980,7 +989,7 @@ Compute phi
 
 			if(defects_sim.defect_flag == DEFECT_GLOBAL)
 			{
-				COUT<< " time step subdivision for defect: "<<numsteps_defect<< " dtau is: "<<dtau<<" dx is: "<<dx<<endl;
+				COUT << COLORTEXT_BLUE << " time step subdivision for defect: " << numsteps_defect << " dtau is: " << dtau << " dx is: " << dx << COLORTEXT_RESET << endl;
 			}
 		}
 
