@@ -614,14 +614,14 @@ Start of the main loop:
 			}
 		}
 
-//		for (x.first(); x.test(); x.next())
-//        {
-//            if (x.coord(0) == sim.numpts/2 && x.coord(1) == sim.numpts/2)
-//            {		
-//            	source(x) += 0.01 * a;
-//                Sij(x, 0, 0) -= 0.01 * a;
-//            }
-//        }
+		for (x.first(); x.test(); x.next())
+        {
+            if (x.coord(0) == sim.numpts/2 && x.coord(1) == sim.numpts/2)
+            {		
+            	source(x) += 0.01 * a;
+                Sij(x, 0, 0) -= 0.01 * a;
+            }
+        }
 
 #ifdef BENCHMARK
 		projection_time += MPI_Wtime() - cycle_start_time;
