@@ -72,6 +72,7 @@
 #define DEFECT_NONE          0
 #define DEFECT_GLOBAL        1
 #define DEFECT_LOCAL         2
+#define DEFECT_STRAIGHT      3
 
 // Identifiers for IC generator modules
 #define ICGEN_BASIC                 0
@@ -298,15 +299,18 @@ struct cosmology
 
 struct defects_metadata
 {
-    int defect_flag;
-    int nComponents;
-    double eta2;
-    double lambda;
-    double friction_coeff;
-    int dissipation;
-    double diss_end;
-    int num_defect_output;
-    double z_defects[MAX_OUTPUTS];
-    double z_ic_defects;
+	int defect_flag;
+	int nComponents;
+	double eta2;
+	double lambda;
+	double friction_coeff;
+	int dissipation;
+	double diss_end;
+	int num_defect_output;
+	double z_defects[MAX_OUTPUTS];
+	double z_ic_defects;
+	double string_velocity;
+	double string_x_pos;
+	double string_y_pos;
 };
 #endif
