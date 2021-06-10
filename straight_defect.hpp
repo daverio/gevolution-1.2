@@ -85,7 +85,7 @@ void StraightDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metad
 	Tuv_defect_.initialize(*lat_,4,4,symmetric);
 	Tuv_defect_.alloc();
 	
-	Tuv_straight_[0][0] = mu * gamma / *dx / *dx ;  //   
+	Tuv_straight_[0][0] = - mu * gamma / *dx / *dx ;  //   
 	
 	COUT << " Tuv_straight_ [0][0] = " << Tuv_straight_[0][0] << endl;
 	COUT << " DX = " << *dx << endl;
@@ -94,6 +94,7 @@ void StraightDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metad
 	Tuv_straight_[3][3] = - mu / *dx /gamma / *dx; 
 
 	Tuv_straight_[1][0] = mu * gamma * v / *dx  / *dx;
+	COUT << " Tuv_stright = " << Tuv_straight_[1][0] << endl;
 	Tuv_straight_[2][0] = 0;
 	Tuv_straight_[3][0] = 0;
 	Tuv_straight_[2][1] = 0;
@@ -229,16 +230,22 @@ void StraightDefect::projection_Tuu_straight_defect(double a)
 		        rescalPos[k] = (string_pos[k] - string_ref_coord[k] * *dx_) / *dx_;
 		        rescalPosDown[k] = 1.0l - rescalPos[k];
 		    }
-				
+			
+//			cout << " a = " << a << endl;
+//			cout << " 00 componet before = " << Tuv_straight_[0][0] << endl;
+//			cout << " rescalPosDown[0] = " << rescalPosDown[0] << endl;
+//			cout << " rescalPosDown[1] = " << rescalPosDown[1] << endl;
+//			
 			for (int m=0; m<4; m++)
 			{	
-
 				Tuv_defect_(xTuv,m,m)        = rescalPosDown[0] * rescalPosDown[1] * Tuv_straight_[m][m] / a / a ;
 				Tuv_defect_(xTuv+1,m,m)      = rescalPosDown[0] * rescalPos[1] * Tuv_straight_[m][m]  / a / a ;
 				Tuv_defect_(xTuv+0,m,m)      = rescalPos[0] * rescalPosDown[1] * Tuv_straight_[m][m]  / a / a ;
-				Tuv_defect_(xTuv+0+1,m,m)    = rescalPos[0] * rescalPos[1] * Tuv_straight_[m][m]  / a / a ;
+				Tuv_defect_(xTuv+0+1,m,m)    = rescalPos[0] * rescalPos[1] * Tuv_straight_[m][m]  / a / a  ;
 		
 			}
+			
+//			cout << " AND 00 component after = " << Tuv_defect_(xTuv,0,0) << endl;
 		}
 	}
 }
@@ -278,7 +285,8 @@ void StraightDefect::projection_Ti0_straight_defect(double a)
 
 				Tuv_defect_(xTuv,m,0)        = rescalPos[1] * Tuv_straight_[m][0]  / a / a;
 				Tuv_defect_(xTuv+1,m,0)      = rescalPosDown[1] * Tuv_straight_[m][0]  / a / a ;
-
+//				COUT << "Tuv defect [1,0] = " << Tuv_defect_(xTuv,m,0) << " stright = " << Tuv_straight_[m][0]  << endl;
+//				COUT << "Tuv defect [1,0] = " << Tuv_defect_(xTuv+1,m,0) << " stright = " << Tuv_straight_[m][0] << endl;
 			}
 		}
 	}
