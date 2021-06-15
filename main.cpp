@@ -209,13 +209,16 @@ int main(int argc, char **argv)
 	usedparams += parseDefectMetadata(params,numparam,metadat_defect);
 	***/
 	
+	usedparams = parseDefectMetadata(params, numparam, defects_sim, sim);
 
-	if(!defects_sim.defect_flag)
-	{
-		usedparams = parseDefectMetadata(params, numparam, defects_sim, sim);
+	COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
 
-		COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
-	}
+//	if(!defects_sim.defect_flag)
+//	{
+//		usedparams = parseDefectMetadata(params, numparam, defects_sim, sim);
+
+//		COUT << " parsing of defect parameters from the settings file completed. " << numparam << " parameters found including defects, " << usedparams << " were used." << endl<<endl;
+//	}
 
 	sprintf(filename, "%s%s_settings_used.ini", sim.output_path, sim.basename_generic);
 	saveParameterFile(filename, params, numparam);
@@ -503,7 +506,7 @@ Start of the main loop:
 			for(x.first(); x.test(); x.next())
 			{
 //				COUT << " Source (x) = " << source(x) << " AND defect_T00(x) = " << defects_.Tuv_defect_(x ,0 ,0 ) << endl;
-				source(x) -= a * a * a * defects_.Tuv_defect_(x ,0 ,0 ) ; 
+				source(x) -= 50.52611 * a * a * a * defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize; 
 				//defects_.Tuv_defect_(x ,0 ,0 ) / sim.boxsize / sim.boxsize / sim.boxsize; 
 //				COUT << " Source (x) = " << source(x) << endl << endl;
 			}
@@ -557,7 +560,7 @@ Start of the main loop:
 				for(x.first(); x.test(); x.next()) 
 				{
 					for(int i = 0;i<3;i++)
-						Bi(x, i) +=  a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 );
+						Bi(x, i) +=  50.52611 * a * a * a * a * defects_.Tuv_defect_(x ,i+1 ,0 ) / sim.boxsize / sim.boxsize;
 						// sim.boxsize / sim.boxsize / sim.boxsize
 				}
 			}
@@ -601,7 +604,7 @@ Start of the main loop:
 				{
 					for(j=1;j<i;j++)
 					{
-							Sij(x, i-1, j-1) += a * a * a * defects_.Tuv_defect_(x ,i ,j);
+							Sij(x, i-1, j-1) += 50.52611 * a * a * a * defects_.Tuv_defect_(x ,i ,j) / sim.boxsize / sim.boxsize;
 							// / sim.boxsize / sim.boxsize / sim.boxsize
 					}	
 				}
@@ -826,9 +829,9 @@ Compute phi
 
 			if(defects_sim.defect_flag == DEFECT_GLOBAL)
 			{
-				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
-				defects->writedefectSnapshots(h5filename, snapcount);
-				defects->write_Tuv_defect(h5filename,snapcount);
+//				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+//				defects->writedefectSnapshots(h5filename, snapcount);
+//				defects->write_Tuv_defect(h5filename,snapcount);
 			}
 			else if(defects_sim.defect_flag == DEFECT_STRAIGHT)
 			{
@@ -881,7 +884,9 @@ Compute phi
 				
 				COUT << COLORTEXT_BLUE << " Outputing defect statistics " << COLORTEXT_RESET << " at z = " << ((1./a) - 1.) <<  ", tau/boxsize = " << tau << endl;
 				defects->defects_stat_output();
-//				defects->write_Tuv_defect(h5filename,zdefectscount);
+				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
+				defects->writedefectSnapshots(h5filename, zdefectscount);
+				defects->write_Tuv_defect(h5filename,zdefectscount);
 //				defects_.test_global_defect(h5filename, zdefectscount, (1/a) - 1, dtau, tau);
 
 				zdefectscount++;
@@ -949,8 +954,8 @@ Compute phi
 		// numsteps for defect
 		if(defects_sim.defect_flag == DEFECT_GLOBAL)
 		{
-			if (0.2 * dtau > dx * sim.movelimit)
-				numsteps_defect = (int) ceil(0.2 * dtau / dx / sim.movelimit );
+			if (0.2 * dtau > dx * 0.2)
+				numsteps_defect = (int) ceil(0.2 * dtau / dx / 0.5 );
 			else numsteps_defect = 1;
 		}
 		else if(defects_sim.defect_flag == DEFECT_STRAIGHT)

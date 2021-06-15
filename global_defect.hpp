@@ -47,7 +47,7 @@ private:
 	Field<float> pi_defect_;
 	Field<float> pi_defect_prev_;
 
-	Field<float> T00_defect_;
+	Field<double> T00_defect_;
 	Field<double>Tii_defect_;
 
 	Field<Imag> T00_defect_k_;
@@ -257,7 +257,7 @@ void GlobalDefect::compute_Tuv_defect(double a)
 	{
 		double mpidot = 0;
 		double gradPhi2 = 0;
-		double gradPhi2_ = 0;
+//		double gradPhi2_ = 0;
 
 		for(int c=0; c < defects_sim_->nComponents;c++)
 		{
@@ -275,27 +275,27 @@ void GlobalDefect::compute_Tuv_defect(double a)
 		
 		for(int i = 0;i<3;i++)
 		{
-			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ ; // / sim_->boxsize; 
-			temp = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ ;
-			gradPhi2_ += temp*temp;
+			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ / sim_->boxsize; 
+			temp = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ / sim_->boxsize;
+//			gradPhi2_ += temp*temp;
 		}
 		}
 
 		gradPhi2 = (gradPhi[0]*gradPhi[0])+(gradPhi[1]*gradPhi[1])+(gradPhi[2]*gradPhi[2]);
 
-		T00_defect_(x) = a2 * (mpidot / 2.0 / a2   + potential(x) + gradPhi2_ / 2.0 / a2) ;
+//		T00_defect_(x) = a2 * (mpidot / 2.0 / a2   + potential(x) + gradPhi2_ / 2.0 / a2) ;
 		Tuv_defect_(x, 0, 0) = a2 * (mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2) ;
 
-		Tuv_defect_(x, 1, 1) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[0] * gradPhi[0];
-		Tuv_defect_(x, 2, 2) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[1] * gradPhi[1];
-		Tuv_defect_(x, 3, 3) = mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[2] * gradPhi[2];
+		Tuv_defect_(x, 1, 1) = a2 * (mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[0] * gradPhi[0]);
+		Tuv_defect_(x, 2, 2) = a2 * (mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[1] * gradPhi[1]);
+		Tuv_defect_(x, 3, 3) = a2 * (mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[2] * gradPhi[2]);
 
-		Tuv_defect_(x, 1, 0) = gradPhi[0]*sqrt(mpidot);
-		Tuv_defect_(x, 2, 0) = gradPhi[1]*sqrt(mpidot);
-		Tuv_defect_(x, 3, 0) = gradPhi[2]*sqrt(mpidot);
-		Tuv_defect_(x, 2, 1) = gradPhi[1]*gradPhi[0];
-		Tuv_defect_(x, 3, 1) = gradPhi[2]*gradPhi[0];
-		Tuv_defect_(x, 3, 2) = gradPhi[2]*gradPhi[1];
+		Tuv_defect_(x, 1, 0) = a2 * gradPhi[0]*sqrt(mpidot);
+		Tuv_defect_(x, 2, 0) = a2 * gradPhi[1]*sqrt(mpidot);
+		Tuv_defect_(x, 3, 0) = a2 * gradPhi[2]*sqrt(mpidot);
+		Tuv_defect_(x, 2, 1) = a2 * gradPhi[1]*gradPhi[0];
+		Tuv_defect_(x, 3, 1) = a2 * gradPhi[2]*gradPhi[0];
+		Tuv_defect_(x, 3, 2) = a2 * gradPhi[2]*gradPhi[1];
 
 	}
 	firststep = 1;
@@ -309,8 +309,8 @@ void GlobalDefect::write_Tuv_defect(string h5filename, const int snapcount)
 #ifdef EXTERNAL_IO
 	COUT << "Currently defect snapshot does not work with external IO" << endl;
 #else
-//	Tuv_defect_.saveHDF5(h5filename + filename_def + "_Tuv_global_defect_.h5" );
-	T00_defect_.saveHDF5(h5filename + filename_def + "_T00_global_defect_.h5" );
+	Tuv_defect_.saveHDF5(h5filename + filename_def + "_Tuv_global_defect_.h5" );
+//	T00_defect_.saveHDF5(h5filename + filename_def + "_T00_global_defect_.h5" );
 #endif
 }
 
