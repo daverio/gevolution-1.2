@@ -43,12 +43,12 @@ private:
 	metadata * sim_;
 	defects_metadata * defects_sim_;
 */
-	Field<float> phi_defect_;
-	Field<float> pi_defect_;
-	Field<float> pi_defect_prev_;
+	Field<Real> phi_defect_;
+	Field<Real> pi_defect_;
+	Field<Real> pi_defect_prev_;
 
-	Field<double> T00_defect_;
-	Field<double>Tii_defect_;
+	Field<Real> T00_defect_;
+
 
 	Field<Imag> T00_defect_k_;
 	PlanFFT<Imag> planT00_;
@@ -98,9 +98,6 @@ void GlobalDefect::initialize(Lattice * lat, Lattice * klat, double *dx, metadat
 
 	T00_defect_.initialize(*lat_);
 	T00_defect_.alloc();
-
-	Tii_defect_.initialize(*lat_);
-	Tii_defect_.alloc();
 
 	Tuv_defect_.initialize(*lat_,4,4,symmetric);
 	Tuv_defect_.alloc();
@@ -257,7 +254,7 @@ void GlobalDefect::compute_Tuv_defect(double a)
 	{
 		double mpidot = 0;
 		double gradPhi2 = 0;
-//		double gradPhi2_ = 0;
+		double gradPhi2_ = 0;
 
 		for(int c=0; c < defects_sim_->nComponents;c++)
 		{
@@ -277,13 +274,13 @@ void GlobalDefect::compute_Tuv_defect(double a)
 		{
 			gradPhi[i] = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ / sim_->boxsize; 
 			temp = ( phi_defect_(x+i,c) - phi_defect_(x-i,c) ) / 2.0 / *dx_ / sim_->boxsize;
-//			gradPhi2_ += temp*temp;
+			gradPhi2_ += temp*temp;
 		}
 		}
 
 		gradPhi2 = (gradPhi[0]*gradPhi[0])+(gradPhi[1]*gradPhi[1])+(gradPhi[2]*gradPhi[2]);
 
-//		T00_defect_(x) = a2 * (mpidot / 2.0 / a2   + potential(x) + gradPhi2_ / 2.0 / a2) ;
+		T00_defect_(x) = a2 * (mpidot / 2.0 / a2   + potential(x) + gradPhi2_ / 2.0 / a2) ;
 		Tuv_defect_(x, 0, 0) = a2 * (mpidot / 2.0 / a2 + potential(x) + gradPhi2 / 2.0 / a2) ;
 
 		Tuv_defect_(x, 1, 1) = a2 * (mpidot / 2.0 - potential(x)* a2 - gradPhi2 / 2.0 + gradPhi[0] * gradPhi[0]);

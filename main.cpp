@@ -602,7 +602,7 @@ Start of the main loop:
 			{
 				for(int i=1;i<4;i++)
 				{
-					for(j=1;j<i;j++)
+					for(j=1;j<=i;j++)
 					{
 							Sij(x, i-1, j-1) += 50.52611 * a * a * a * defects_.Tuv_defect_(x ,i ,j) / sim.boxsize / sim.boxsize;
 							// / sim.boxsize / sim.boxsize / sim.boxsize
@@ -887,7 +887,6 @@ Compute phi
 				COUT << COLORTEXT_CYAN << " writing snapshot for global defects" << COLORTEXT_RESET << " at z =" << ((1/a) - 1) << endl;
 				defects->writedefectSnapshots(h5filename, zdefectscount);
 				defects->write_Tuv_defect(h5filename,zdefectscount);
-//				defects_.test_global_defect(h5filename, zdefectscount, (1/a) - 1, dtau, tau);
 
 				zdefectscount++;
 			}
